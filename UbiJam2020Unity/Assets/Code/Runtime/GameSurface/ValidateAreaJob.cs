@@ -15,6 +15,7 @@ namespace Runtime.GameSurface
         public int Resolution;
         public int Timestamp;
         public NativeArray<Color32> GameSurfaceTex;
+        public NativeArray<bool> DidCutNewSurface;
 
         public void Execute()
         {
@@ -33,12 +34,16 @@ namespace Runtime.GameSurface
 
             while (PositionsToValidate.Count > 0) ValidateAllConnectedSurfaces(PositionsToValidate.Dequeue());
 
+            bool anyNewDestroyedNodes = false;
+            
             for (var x = 0; x < Resolution; x++)
             for (var y = 0; y < Resolution; y++)
             {
                 var node = GetSurfacePiece(x, y);
-                if (node.IsInvalid(Timestamp))
+                if (node.IsInvalid(Timestamp) && node.State!=SurfaceState.Destroyed)
                 {
+                    anyNewDestroyedNodes = true;
+                        
                     SetNodeAtPosition(x, y, node.DestroyPiece());
                     GameSurfaceTex[x + y * Resolution] = ColorClear;
                 }
@@ -59,6 +64,8 @@ namespace Runtime.GameSurface
                     }
                 }
             }
+
+            DidCutNewSurface[0] = anyNewDestroyedNodes;
         }
 
         private void ValidateAllConnectedSurfaces(Vector2Int basePosition)
