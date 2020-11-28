@@ -16,10 +16,10 @@ namespace Runtime.GameSurface
 
 		private void Update()
 		{
-			_velocity -= GameSettings.Instance.Gravity * Time.deltaTime;
-			transform.position += Vector3.up * _velocity * Time.deltaTime;
+			_velocity += GameSettings.Instance.Gravity * Time.deltaTime;
+			transform.position += Vector3.forward * _velocity * Time.deltaTime;
 
-			if (transform.position.y < -30)
+			if (transform.position.z > 30)
 			{
 				Destroy(_mask);
 				Destroy(gameObject);
