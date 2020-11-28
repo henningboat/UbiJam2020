@@ -51,34 +51,33 @@ namespace Runtime.PlayerSystem
 			{
 				case PlayerState.Alive:
 
-					if (GameManager.Instance.State != GameState.Active)
+					if (GameManager.Instance.State == GameState.Active)
 					{
-						return;
-					}
-					
-					if (input.DirectionalInput.magnitude>Mathf.Epsilon)
-					{
-						_heading = input.DirectionalInput.normalized;
-					}
-					
-					transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(Vector3.forward, _heading), _rotationSpeed * Time.deltaTime);
+
+						if (input.DirectionalInput.magnitude > Mathf.Epsilon)
+						{
+							_heading = input.DirectionalInput.normalized;
+						}
+
+						transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(Vector3.forward, _heading), _rotationSpeed * Time.deltaTime);
 
 
-					float speed;
-					if (input.DirectionalInput.magnitude > Mathf.Epsilon)
-					{
-						speed = Mathf.Lerp(_directionAdjustmentSpeed, _forwardSpeed, Vector2.Dot(transform.up, _heading));
-					}
-					else
-					{
-						speed = 0;
-					}
+						float speed;
+						if (input.DirectionalInput.magnitude > Mathf.Epsilon)
+						{
+							speed = Mathf.Lerp(_directionAdjustmentSpeed, _forwardSpeed, Vector2.Dot(transform.up, _heading));
+						}
+						else
+						{
+							speed = 0;
+						}
 
-					TryTranslate(transform.up * (Time.deltaTime * speed));
+						TryTranslate(transform.up * (Time.deltaTime * speed));
 
-					if (input.Eat)
-					{
-						GameSurface.GameSurface.Instance.Cut(transform.position, _lastFramePosition);
+						if (input.Eat)
+						{
+							GameSurface.GameSurface.Instance.Cut(transform.position, _lastFramePosition);
+						}
 					}
 
 					break;

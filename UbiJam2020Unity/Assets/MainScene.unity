@@ -280,7 +280,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 788e0bc6a33343719902bd916d7b1263, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _introCutscene: {fileID: 0}
+  _introCutscene: {fileID: 168564609}
 --- !u!320 &168564609
 PlayableDirector:
   m_ObjectHideFlags: 0
@@ -1228,7 +1228,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _resolution: 256
   _size: 10
-  _startPoint: {x: 128, y: 128}
+  _startPoint: {x: -64, y: 10}
   _gameSurfaceColorTexture: {fileID: 2800000, guid: 05c60681b3af9014abb37cc0330b0a7d, type: 3}
   _fallingPiecePrefab: {fileID: 8229328309608016079, guid: 9ce18c83c42ae7c4dafd3ce77001a9d7, type: 3}
 --- !u!4 &1924698280

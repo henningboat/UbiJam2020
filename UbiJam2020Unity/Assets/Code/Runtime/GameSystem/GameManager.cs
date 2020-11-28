@@ -10,7 +10,7 @@ namespace Runtime.GameSystem
 	{
 		#region Static Stuff
 
-		private static PlayerType[] _selectedPlayerTypes = { PlayerType.PlayerA, PlayerType.PlayerB, };
+		private static PlayerType[] _selectedPlayerTypes = { PlayerType.PlayerBlue, PlayerType.PlayerYellow, };
 
 		#endregion
 

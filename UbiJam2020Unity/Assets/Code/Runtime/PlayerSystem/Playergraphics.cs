@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.U2D.Animation;
 
 public class Playergraphics : MonoBehaviour
 {
 	#region Serialize Fields
 
-	[SerializeField,] private float rotationSpeed = 100;
 	[SerializeField,] private float minDistance = 1;
-	[SerializeField,] private Transform _startBone;
 
 	#endregion
 
@@ -25,7 +24,7 @@ public class Playergraphics : MonoBehaviour
 	void Start()
 	{
 		lastFramePosition = transform.position;
-		bodyParts = _startBone.transform.GetComponentsInChildren<Transform>().ToList();
+		bodyParts = GetComponentInChildren<SpriteSkin>().rootBone.GetComponentsInChildren<Transform>().ToList();
 		for (int i = 1; i < bodyParts.Count; i++)
 		{
 			bodyParts[i].SetParent(null, true);

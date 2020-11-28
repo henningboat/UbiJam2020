@@ -2,7 +2,9 @@
 {
 	public enum PlayerType
 	{
-		PlayerA,
-		PlayerB
+		PlayerBlue = 0,
+		PlayerYellow = 1,
+		PlayerPink = 2,
+		PlayerOrange = 3,
 	}
 }

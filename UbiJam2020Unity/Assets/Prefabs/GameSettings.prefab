@@ -43,6 +43,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a430b14abc04755bb8ad0365a4ad8e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _gravity: 4
-  _playerAPrefab: {fileID: 3233183233737892388, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
-  _playerBPrefab: {fileID: 3233183233737892388, guid: 7a130b66affd2d948a518aef416171db, type: 3}
+  _gravity: 15
+  _playerBluePrefab: {fileID: 7425216866390933685, guid: 5046bc1ca79bef0419857405ca61ee4e, type: 3}
+  _playerYellowPrefab: {fileID: 7471395151720182580, guid: ecd8a7f5d0920a840ac6a3941a481b98, type: 3}
+  _playerPinkPrefab: {fileID: 3000725830074943131, guid: 6cfd14cc54eb4a842b1885531a610122, type: 3}
+  _playerOrangePrefab: {fileID: 6598984813116683162, guid: 5930f3c1a29688946a44f5bcc5e109d6, type: 3}

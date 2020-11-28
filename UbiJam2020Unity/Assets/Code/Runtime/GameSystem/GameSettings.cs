@@ -10,8 +10,10 @@ namespace Runtime.GameSystem
 		#region Serialize Fields
 
 		[SerializeField,] private float _gravity = 4;
-		[SerializeField,] private Player _playerAPrefab;
-		[SerializeField,] private Player _playerBPrefab;
+		[SerializeField,] private Player _playerBluePrefab;
+		[SerializeField,] private Player _playerYellowPrefab;
+		[SerializeField,] private Player _playerPinkPrefab;
+		[SerializeField,] private Player _playerOrangePrefab;
 
 		#endregion
 
@@ -27,12 +29,17 @@ namespace Runtime.GameSystem
 		{
 			switch (playerType)
 			{
-				case PlayerType.PlayerA:
-					return _playerAPrefab;
+				case PlayerType.PlayerBlue:
+					return _playerBluePrefab;
 					break;
-				case PlayerType.PlayerB:
-					return _playerBPrefab;
+				case PlayerType.PlayerYellow:
+					return _playerYellowPrefab;
 					break;
+				case PlayerType.PlayerPink:
+					return _playerPinkPrefab;
+					break;
+				case PlayerType.PlayerOrange:
+					return _playerOrangePrefab;
 				default:
 					throw new ArgumentOutOfRangeException(nameof(playerType), playerType, null);
 			}
