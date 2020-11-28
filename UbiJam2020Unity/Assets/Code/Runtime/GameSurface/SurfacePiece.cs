@@ -12,12 +12,15 @@ namespace Runtime.GameSurface
         }
 
         public SurfaceState State { get; private set; }
-        public Vector2Int Position { get; private set; }
+        public Vector2Int Position { get; }
 
         public int ValidAtTimestamp { get; private set; }
 
         //todo inverted bool, fix
-        public bool IsInvalid => ValidAtTimestamp < GameSurface.Instance.CurrentTimestamp;
+        public bool IsInvalid(int timestamp)
+        {
+            return ValidAtTimestamp < timestamp;
+        }
 
         public SurfacePiece Cut()
         {
@@ -25,14 +28,16 @@ namespace Runtime.GameSurface
             return this;
         }
 
-        public void DestroyPiece()
+        public SurfacePiece DestroyPiece()
         {
             State = SurfaceState.Destroyed;
+            return this;
         }
 
-        public void Validate()
+        public SurfacePiece Validate(int timestamp)
         {
-            ValidAtTimestamp = GameSurface.Instance.CurrentTimestamp;
+            ValidAtTimestamp = timestamp;
+            return this;
         }
     }
 }
