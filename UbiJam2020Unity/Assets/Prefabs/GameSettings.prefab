@@ -44,3 +44,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _gravity: 4
+  _playerAPrefab: {fileID: 3233183233737892388, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
+  _playerBPrefab: {fileID: 3233183233737892388, guid: 7a130b66affd2d948a518aef416171db, type: 3}

@@ -10,6 +10,7 @@ namespace Runtime.PlayerSystem
 	{
 		#region Serialize Fields
 
+		[SerializeField,] private PlayerType _playerType;
 		[SerializeField,] private float _forwardSpeed = 2;
 		[SerializeField,] private float _rotationSpeed = 100;
 		[SerializeField,] private bool _allowSliding;
@@ -20,6 +21,7 @@ namespace Runtime.PlayerSystem
 
 		private float _velocity;
 		private Vector2 _lastFramePosition;
+		private int _playerID;
 
 		#endregion
 
@@ -35,14 +37,16 @@ namespace Runtime.PlayerSystem
 		{
 			base.Update();
 
+			var input = PlayerInputManager.Instance.GetInputForPlayer(_playerID);
+
 			switch (State)
 			{
 				case PlayerState.Alive:
-					transform.Rotate(0, 0, PlayerInput.Instance.HorizontalAxis * _rotationSpeed * Time.deltaTime);
+					transform.Rotate(0, 0, input.DirectionalInput * _rotationSpeed * Time.deltaTime);
 
 					TryTranslate(transform.up * Time.deltaTime * _forwardSpeed);
 
-					if (PlayerInput.Instance.Eat)
+					if (input.Eat)
 					{
 						GameSurface.GameSurface.Instance.Cut(transform.position, _lastFramePosition);
 					}
@@ -58,6 +62,15 @@ namespace Runtime.PlayerSystem
 			}
 
 			_lastFramePosition = transform.position;
+		}
+
+		#endregion
+
+		#region Public methods
+
+		public void SetPlayerID(int i)
+		{
+			_playerID = i;
 		}
 
 		#endregion
