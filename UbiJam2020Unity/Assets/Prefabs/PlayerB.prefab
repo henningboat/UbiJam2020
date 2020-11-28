@@ -78,7 +78,7 @@ MonoBehaviour:
   _playerType: 0
   _forwardSpeed: 3
   _directionAdjustmentSpeed: 0.7
-  _rotationSpeed: 200
+  _rotationSpeed: 100000
   _allowSliding: 0
 --- !u!1 &3662782688887731035
 GameObject:
@@ -169,8 +169,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6851607865548385048}
   m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: -0.724, z: 0}
-  m_LocalScale: {x: 0.25344938, y: 0.25344938, z: 0.25344938}
+  m_LocalPosition: {x: 0, y: -1.66, z: 0}
+  m_LocalScale: {x: 0.4408752, y: 0.4408752, z: 0.4408752}
   m_Children:
   - {fileID: 6557046322924451419}
   m_Father: {fileID: 3233183233737892389}
@@ -264,7 +264,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rotationSpeed: 100
-  minDistance: 0.0002
+  minDistance: 0.002
   _startBone: {fileID: 6557046322924451419}
 --- !u!1 &7972529646844750685
 GameObject:

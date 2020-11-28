@@ -32,7 +32,7 @@ public class Playergraphics : MonoBehaviour
 		}
 	}
 
-	void Update()
+	void FixedUpdate()
 	{
 		float curspeed = ((Vector2) transform.position - lastFramePosition).magnitude;
 
