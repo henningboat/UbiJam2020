@@ -143,11 +143,8 @@ namespace Runtime.PlayerSystem
 
 			bool? invertMinor = null;
 
-			int count = 0;
-			
 			while (distanceToTravel > 0)
 			{
-				count++;
 				var currentStepSize = Mathf.Min(stepSize, distanceToTravel);
 
 				var didMove = false;
@@ -194,7 +191,6 @@ namespace Runtime.PlayerSystem
 					break;
 				}
 			}
-			Debug.Log(count);
 		}
 
 		private bool TryTranslateStep(Vector2 offset, ref float distanceToTravel, ref bool didMove)

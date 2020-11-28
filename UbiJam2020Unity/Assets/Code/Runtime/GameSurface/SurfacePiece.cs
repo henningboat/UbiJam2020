@@ -25,7 +25,7 @@ namespace Runtime.GameSurface
 
 		#region Public methods
 
-		//todo inverted bool, fix
+		//todo inverted bool, fix 
 		public bool IsInvalid(int timestamp)
 		{
 			return ValidAtTimestamp < timestamp;

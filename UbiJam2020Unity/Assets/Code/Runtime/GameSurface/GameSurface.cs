@@ -77,7 +77,8 @@ namespace Runtime.GameSurface
 
 		private void LateUpdate()
 		{
-			CurrentTimestamp++;
+			//important, the system is doing 2 passes, so we need to increment timestamp by two
+			CurrentTimestamp+=2;
 			NativeArray<bool> anyNewSurfaceDestroyed = new NativeArray<bool>(1, Allocator.TempJob);
 
 			NativeArray<SurfacePiece> surfaceBackup = new NativeArray<SurfacePiece>(_surface, Allocator.Temp);
