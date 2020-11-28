@@ -7,17 +7,15 @@ public class Playergraphics : MonoBehaviour
 {
 	#region Serialize Fields
 
-	private List<Transform> bodyParts;
 	[SerializeField,] private float rotationSpeed = 100;
 	[SerializeField,] private float minDistance = 1;
-
-	[SerializeField] private Transform _startBone;
-
+	[SerializeField,] private Transform _startBone;
 
 	#endregion
 
 	#region Private Fields
 
+	private List<Transform> bodyParts;
 	private Vector2 lastFramePosition;
 
 	#endregion
@@ -30,7 +28,7 @@ public class Playergraphics : MonoBehaviour
 		bodyParts = _startBone.transform.GetComponentsInChildren<Transform>().ToList();
 		for (int i = 1; i < bodyParts.Count; i++)
 		{
-			bodyParts[i].SetParent(null,true);
+			bodyParts[i].SetParent(null, true);
 		}
 	}
 
@@ -54,7 +52,9 @@ public class Playergraphics : MonoBehaviour
 				T = 0.5f;
 			}
 
-			curBodyPart.position = Vector3.Slerp(curBodyPart.position, newpos, T);
+			Vector3 currentPosition = Vector3.Slerp(curBodyPart.position, newpos, T);
+			currentPosition.z = bodyParts[0].position.z;
+			curBodyPart.position = currentPosition;
 			curBodyPart.rotation = Quaternion.Slerp(curBodyPart.rotation, PrevBodyPart.rotation, T);
 		}
 

@@ -2,6 +2,7 @@
 using Runtime.GameSurface;
 using Runtime.GameSystem;
 using Runtime.InputSystem;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace Runtime.PlayerSystem
@@ -12,6 +13,7 @@ namespace Runtime.PlayerSystem
 
 		[SerializeField,] private PlayerType _playerType;
 		[SerializeField,] private float _forwardSpeed = 2;
+		[SerializeField,] private float _directionAdjustmentSpeed = 2;
 		[SerializeField,] private float _rotationSpeed = 100;
 		[SerializeField,] private bool _allowSliding;
 
@@ -22,7 +24,8 @@ namespace Runtime.PlayerSystem
 		private float _velocity;
 		private Vector2 _lastFramePosition;
 		private int _playerID;
-
+		private Vector2 _heading;
+		
 		#endregion
 
 		#region Properties
@@ -33,6 +36,11 @@ namespace Runtime.PlayerSystem
 
 		#region Unity methods
 
+		private void Start()
+		{
+			_heading = transform.up;
+		}
+
 		protected override void Update()
 		{
 			base.Update();
@@ -42,9 +50,31 @@ namespace Runtime.PlayerSystem
 			switch (State)
 			{
 				case PlayerState.Alive:
-					transform.Rotate(0, 0, input.DirectionalInput * _rotationSpeed * Time.deltaTime);
 
-					TryTranslate(transform.up * Time.deltaTime * _forwardSpeed);
+					if (GameManager.Instance.State != GameState.Active)
+					{
+						return;
+					}
+					
+					if (input.DirectionalInput.magnitude>Mathf.Epsilon)
+					{
+						_heading = input.DirectionalInput.normalized;
+					}
+					
+					transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(Vector3.forward, _heading), _rotationSpeed * Time.deltaTime);
+
+
+					float speed;
+					if (input.DirectionalInput.magnitude > Mathf.Epsilon)
+					{
+						speed = Mathf.Lerp(_directionAdjustmentSpeed, _forwardSpeed, Vector2.Dot(transform.up, _heading));
+					}
+					else
+					{
+						speed = 0;
+					}
+
+					TryTranslate(transform.up * (Time.deltaTime * speed));
 
 					if (input.Eat)
 					{
@@ -54,8 +84,8 @@ namespace Runtime.PlayerSystem
 					break;
 				case PlayerState.Dead:
 					float deltaTime = Time.deltaTime;
-					_velocity -= GameSettings.Instance.Gravity * deltaTime;
-					transform.position += deltaTime * _velocity * Vector3.up;
+					_velocity += GameSettings.Instance.Gravity * deltaTime;
+					transform.position += deltaTime * _velocity * Vector3.forward;
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
@@ -113,8 +143,11 @@ namespace Runtime.PlayerSystem
 
 			bool? invertMinor = null;
 
+			int count = 0;
+			
 			while (distanceToTravel > 0)
 			{
+				count++;
 				var currentStepSize = Mathf.Min(stepSize, distanceToTravel);
 
 				var didMove = false;
@@ -134,30 +167,34 @@ namespace Runtime.PlayerSystem
 					invertMinor = false;
 				}
 
-				if (!invertMinor.HasValue)
+				if (Mathf.Abs(minorDirection.magnitude) > 0.0001f)
 				{
-					invertMinor = TryTranslateStep(minorDirection, ref distanceToTravel, ref didMove) == false;
-
-					if (invertMinor.Value)
+					if (!invertMinor.HasValue)
 					{
-						TryTranslateStep(-minorDirection, ref distanceToTravel, ref didMove);
-					}
-				}
-				else
-				{
-					if (invertMinor.Value)
-					{
-						minorDirection *= -1;
-					}
+						invertMinor = TryTranslateStep(minorDirection, ref distanceToTravel, ref didMove) == false;
 
-					TryTranslateStep(minorDirection, ref distanceToTravel, ref didMove);
+						if (invertMinor.Value)
+						{
+							TryTranslateStep(-minorDirection, ref distanceToTravel, ref didMove);
+						}
+					}
+					else
+					{
+						if (invertMinor.Value)
+						{
+							minorDirection *= -1;
+						}
+
+						TryTranslateStep(minorDirection, ref distanceToTravel, ref didMove);
+					}
 				}
 
 				if (didMove == false)
 				{
-					return;
+					break;
 				}
 			}
+			Debug.Log(count);
 		}
 
 		private bool TryTranslateStep(Vector2 offset, ref float distanceToTravel, ref bool didMove)

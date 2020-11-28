@@ -76,8 +76,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _playerType: 0
-  _forwardSpeed: 1
-  _rotationSpeed: -120
+  _forwardSpeed: 3
+  _directionAdjustmentSpeed: 0.7
+  _rotationSpeed: 200
   _allowSliding: 0
 --- !u!1 &3662782688887731035
 GameObject:

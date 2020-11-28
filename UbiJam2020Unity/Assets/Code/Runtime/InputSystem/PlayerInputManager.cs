@@ -11,10 +11,10 @@ namespace Runtime.InputSystem
             switch (playerID)
             {
                 case 0:
-                    return new PlayerInput(Input.GetAxis("Player0Horizontal"),Input.GetKey(KeyCode.W));
+                    return new PlayerInput(new Vector2(Input.GetAxis("Player0Horizontal"),Input.GetAxis("Player0Vertical")),Input.GetButton("Player0Eat"));
                 break;
                 case 1:
-                    return new PlayerInput(Input.GetAxis("Player1Horizontal"),Input.GetKey(KeyCode.I));
+                    return new PlayerInput(new Vector2(Input.GetAxis("Player1Horizontal"),Input.GetAxis("Player1Vertical")),Input.GetButton("Player1Eat"));
                     break;
                 default:
                     throw new NotImplementedException();
@@ -24,10 +24,10 @@ namespace Runtime.InputSystem
 
     public struct PlayerInput
     {
-        public readonly float DirectionalInput;
+        public readonly Vector2 DirectionalInput;
         public readonly bool Eat;
 
-        public PlayerInput(float directionalInput, bool eat)
+        public PlayerInput(Vector2 directionalInput, bool eat)
         {
             DirectionalInput = directionalInput;
             Eat = eat;
