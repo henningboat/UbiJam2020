@@ -4,6 +4,7 @@
     {
         _MainTex ("Texture", 2D) = "white" {}
         _Mask ("_Mask", 2D) = "white" {}
+        [Toggle]_ShowMap ("ShowMask", Float) = 0
     }
     SubShader
     {
@@ -33,7 +34,10 @@
             sampler2D _MainTex;
             sampler2D _Mask;
             float4 _MainTex_ST;
+            float4 _Mask_ST;
 
+            float _ShowMap;
+    
             v2f vert (appdata v)
             {
                 v2f o;
@@ -47,7 +51,11 @@
                 fixed4 col = tex2D(_MainTex, i.uv);
                 fixed4 maskCol = tex2D(_Mask, i.uv);
                 clip(maskCol.a*col.a-0.5);
-                return col;
+                
+                if(_ShowMap>0)
+                    return maskCol;
+                else
+                    return col;
             }
             ENDCG
         }
