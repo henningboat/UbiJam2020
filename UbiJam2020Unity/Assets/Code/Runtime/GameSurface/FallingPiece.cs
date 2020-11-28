@@ -1,5 +1,7 @@
-﻿using Runtime.GameSystem;
+﻿using System;
+using Runtime.GameSystem;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Runtime.GameSurface
 {
@@ -13,6 +15,12 @@ namespace Runtime.GameSurface
 		#endregion
 
 		#region Unity methods
+
+		private void OnEnable()
+		{
+			var audioSources = GetComponentsInChildren<AudioSource>();
+			audioSources[Random.Range(0, audioSources.Length)].Play();
+		}
 
 		private void Update()
 		{

@@ -16,6 +16,8 @@ namespace Runtime.PlayerSystem
 		[SerializeField,] private float _directionAdjustmentSpeed = 2;
 		[SerializeField,] private float _rotationSpeed = 100;
 		[SerializeField,] private bool _allowSliding;
+		[SerializeField] private AudioSource _eatSound;
+		
 
 		#endregion
 
@@ -77,6 +79,18 @@ namespace Runtime.PlayerSystem
 						if (input.Eat)
 						{
 							GameSurface.GameSurface.Instance.Cut(transform.position, _lastFramePosition);
+						}
+
+						if (input.Eat != _eatSound.isPlaying)
+						{
+							if (input.Eat)
+							{
+								_eatSound.Play();
+							}
+							else
+							{
+								_eatSound.Pause();
+							}
 						}
 					}
 
