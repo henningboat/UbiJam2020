@@ -38,10 +38,12 @@ namespace Runtime.GameSurface
 
 		#region Public methods
 
-		public void SetMask(Texture2D mask)
+		public void SetMaterial(Texture2D mask,Material originalMaterial)
 		{
 			_mask = mask;
-			GetComponent<Renderer>().material.SetTexture("_Mask", mask);
+			Renderer renerer = GetComponent<Renderer>();
+			renerer.material.CopyPropertiesFromMaterial(originalMaterial);
+			renerer.material.SetTexture("_Mask", mask);
 		}
 
 		#endregion

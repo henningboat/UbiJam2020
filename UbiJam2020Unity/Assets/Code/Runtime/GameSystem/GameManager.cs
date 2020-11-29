@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Runtime.PlayerSystem;
+using UnityEditor;
+using UnityEngine;
 
 namespace Runtime.GameSystem
 {
@@ -11,17 +13,31 @@ namespace Runtime.GameSystem
 		#region Static Stuff
 
 		private static PlayerType[] _selectedPlayerTypes = { PlayerType.PlayerBlue, PlayerType.PlayerYellow, };
+		public static int RoundCount { get; private set; }
+		private static int[] Score { get; set; }
+
+		[RuntimeInitializeOnLoadMethod,]
+		static void InitializeScore()
+		{
+			Score = new int[2];
+			RoundCount = 0;
+		}
+
+		#endregion
+
+		#region Private Fields
+
+		private bool _initialized;
 
 		#endregion
 
 		#region Properties
 
+		private int AlivePlayerCount => Players.Count(player => player.State == PlayerState.Alive);
 		protected override GameState InitialState => GameState.InitializeGame;
+		public List<Player> Players { get; private set; }
 
 		#endregion
-
-		private bool _initialized;
-		public List<Player> Players { get; private set; }
 
 		#region Protected methods
 
@@ -44,11 +60,12 @@ namespace Runtime.GameSystem
 
 					break;
 				case GameState.Active:
-					
-					if (AlivePlayerCount <=1)
+
+					if (AlivePlayerCount <= 1)
 					{
 						return GameState.RoundWon;
 					}
+
 					break;
 				case GameState.RoundWon:
 					break;
@@ -69,9 +86,20 @@ namespace Runtime.GameSystem
 				case GameState.Intro:
 					break;
 				case GameState.Active:
-					
+
 					break;
 				case GameState.RoundWon:
+					for (int i = 0; i < Players.Count; i++)
+					{
+						var player = Players[i];
+						if (player.State == PlayerState.Alive)
+						{
+							Score[i]++;
+						}
+					}
+
+					RoundCount++;
+
 					RoundWonScreen.Instance.Show();
 					break;
 				default:
@@ -79,12 +107,14 @@ namespace Runtime.GameSystem
 			}
 		}
 
-		private int AlivePlayerCount => Players.Count(player => player.State == PlayerState.Alive);
+		#endregion
+
+		#region Private methods
 
 		private IEnumerator SpawnPlayers()
 		{
 			yield return null;
-			Players=new List<Player>();
+			Players = new List<Player>();
 			for (int i = 0; i < _selectedPlayerTypes.Length; i++)
 			{
 				var spawnPoint = PlayerSpawnPoints.Instance.GetForPlayer(i);

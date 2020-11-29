@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Runtime.GameSystem;
 using Runtime.Utils;
 using UnityEngine;
@@ -14,7 +15,9 @@ namespace Runtime.ItemSystem
 		[SerializeField,] private float _doubleItemSpawnChance = 0.1f;
 		[SerializeField,] private float _itemSpawnDelay = 3f;
 		[SerializeField,] private float _itemSpawnDelayRandom = 1f;
+		[SerializeField] private int _startSpawningItemsAfterRounds = 3;
 		[SerializeField,] private List<ItemBase> _possibleItemPrefabs;
+		[SerializeField,] private ItemBase _debugItem;
 
 		#endregion
 
@@ -27,7 +30,10 @@ namespace Runtime.ItemSystem
 				yield return null;
 			}
 
-			StartCoroutine(SpawnItemsCoroutine());
+			if (GameManager.RoundCount > _startSpawningItemsAfterRounds || _debugItem != null)
+			{
+				StartCoroutine(SpawnItemsCoroutine());
+			}
 		}
 
 		#endregion
@@ -45,17 +51,34 @@ namespace Runtime.ItemSystem
 			yield return new WaitForSeconds(_itemSpawnDelay + (Random.value * _itemSpawnDelayRandom));
 
 			SpawnRandomItem();
+
+			if (randomValue < _doubleItemSpawnChance)
+			{
+				yield return new WaitForSeconds(_itemSpawnDelay + (Random.value * _itemSpawnDelayRandom));
+				SpawnRandomItem();
+			}
 		}
 
 		private void SpawnRandomItem()
 		{
-			var itemPrefab = _possibleItemPrefabs[Random.Range(0, _possibleItemPrefabs.Count)];
+			ItemBase itemPrefab;
+			if ((_debugItem != null) && Application.isEditor)
+			{
+				itemPrefab = _debugItem;
+			}
+			else
+			{
+				int randomItemIndex = Random.Range(0, _possibleItemPrefabs.Count);
+				itemPrefab = _possibleItemPrefabs[randomItemIndex];
+				_possibleItemPrefabs.RemoveAt(randomItemIndex);
+			}
 
-			Vector3 position;
-			do
+			Vector3 position = (Vector2.one * 5) + (Random.insideUnitCircle * 4.5f);
+
+			while (GameManager.Instance.Players.Any(player => Vector3.Distance(player.transform.position, position) < 5))
 			{
 				position = (Vector2.one * 5) + (Random.insideUnitCircle * 4.5f);
-			} while (GameManager.Instance.Players.TrueForAll(player => Vector3.Distance(player.transform.position, position) > 5));
+			}
 
 			Instantiate(itemPrefab, position, Quaternion.identity);
 		}

@@ -24,6 +24,8 @@ namespace Runtime.GameSurface
 		private NativeArray<Vector2Int> _connectedPiecesKernel;
 		private Texture2D _gameSurfaceTex;
 		private NativeArray<SurfacePiece> _surface;
+		[SerializeField] private float _patchRadius = 2;
+		private Renderer _renderer;
 
 		#endregion
 
@@ -40,6 +42,8 @@ namespace Runtime.GameSurface
 		{
 			base.Awake();
 
+			_renderer = GetComponentInChildren<Renderer>();
+			
 			WorldSpaceGridNodeSize = (1f / _resolution) * _size;
 
 			_connectedPiecesKernel = new NativeArray<Vector2Int>(4, Allocator.Persistent);
@@ -257,7 +261,7 @@ namespace Runtime.GameSurface
 			maskTexture.Apply();
 
 			var instance = Instantiate(_fallingPiecePrefab);
-			instance.SetMask(maskTexture);
+			instance.SetMaterial(maskTexture, _renderer.material);
 		}
 
 		private int GetIndexAtPosition(Vector2Int connectionPosition)
@@ -283,19 +287,39 @@ namespace Runtime.GameSurface
 
 		#endregion
 
-		public void DestroyCircle(Vector3 explosionRadius, float radius)
+		public void DestroyCircle(Vector3 explosionPosition, float radius)
 		{
 			for (int x = 0; x < _resolution; x++)
 			{
 				for (int y = 0; y < _resolution; y++)
 				{
 					Vector2 positonWS = new Vector2(((float)x/_resolution)*_size,((float)y/_resolution)*_size);
-					if (Vector2.Distance(explosionRadius, positonWS) < radius)
+					if (Vector2.Distance(explosionPosition, positonWS) < radius)
 					{
 						Cut(positonWS, positonWS);
 					}
 				}
 			}
+		}
+
+		public void SpawnPatch(Vector3 patchPosition)
+		{
+			for (int x = 0; x < _resolution; x++)
+			{
+				for (int y = 0; y < _resolution; y++)
+				{
+					Vector2 positonWS = new Vector2(((float)x/_resolution)*_size,((float)y/_resolution)*_size);
+					if (Vector2.Distance(patchPosition, positonWS) < _patchRadius)
+					{
+						var index = GetIndexAtPosition(new Vector2Int(x, y));
+						var node = _surface[index];
+						node.State = SurfaceState.Intact;
+						_surface[index] = node;
+					}
+				}
+			}
+
+			GetComponentInChildren<Renderer>().material.SetVector("_PatchTransformation", new Vector4(patchPosition.x, patchPosition.y, _patchRadius));
 		}
 	}
 }

@@ -11,6 +11,9 @@ namespace Runtime.ItemSystem
 		protected override void ActivateItem(Player player)
 		{
 			player.SetSpeedMultiplier(_speedMultiplier,_duration);
+			AudioSource audioSource = GetComponentInChildren<AudioSource>();
+			audioSource.transform.SetParent(null);
+			audioSource.Play();
 		}
 	}
 }

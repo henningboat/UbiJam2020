@@ -16,19 +16,19 @@ namespace Runtime.PlayerSystem
 		[SerializeField,] private float _directionAdjustmentSpeed = 2;
 		[SerializeField,] private float _rotationSpeed = 100;
 		[SerializeField,] private bool _allowSliding;
-		[SerializeField] private AudioSource _eatSound;
-		
+		[SerializeField,] private AudioSource _eatSound;
 
 		#endregion
 
 		#region Private Fields
 
+		private bool _hasPatch;
 		private float _velocity;
 		private Vector2 _lastFramePosition;
 		private int _playerID;
 		private Vector2 _heading;
 		private float _speedMultiplier;
-		private float _speedMultiplierEndTime=float.MinValue;
+		private float _speedMultiplierEndTime = float.MinValue;
 
 		#endregion
 
@@ -121,6 +121,17 @@ namespace Runtime.PlayerSystem
 			_playerID = i;
 		}
 
+		public void SetSpeedMultiplier(float speedMultiplier, float duration)
+		{
+			_speedMultiplier = speedMultiplier;
+			_speedMultiplierEndTime = Time.time + duration;
+		}
+
+		public void GivePatch()
+		{
+			_hasPatch = true;
+		}
+
 		#endregion
 
 		#region Protected methods
@@ -132,7 +143,15 @@ namespace Runtime.PlayerSystem
 				case PlayerState.Alive:
 					if (GameSurface.GameSurface.Instance.GetNodeAtPosition(transform.position).State == SurfaceState.Destroyed)
 					{
-						return PlayerState.Dead;
+						if (_hasPatch)
+						{
+							GameSurface.GameSurface.Instance.SpawnPatch(transform.position);
+							_hasPatch = false;
+						}
+						else
+						{
+							return PlayerState.Dead;
+						}
 					}
 
 					break;
@@ -231,12 +250,6 @@ namespace Runtime.PlayerSystem
 		}
 
 		#endregion
-
-		public void SetSpeedMultiplier(float speedMultiplier, float duration)
-		{
-			_speedMultiplier = speedMultiplier;
-			_speedMultiplierEndTime = Time.time + duration;
-		}
 	}
 
 	public enum PlayerState

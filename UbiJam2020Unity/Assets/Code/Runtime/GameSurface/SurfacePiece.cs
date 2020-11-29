@@ -7,7 +7,7 @@ namespace Runtime.GameSurface
 		#region Properties
 
 		public Vector2Int Position { get; }
-		public SurfaceState State { get; private set; }
+		public SurfaceState State { get;  set; }
 		public int ValidAtTimestamp { get; private set; }
 
 		#endregion

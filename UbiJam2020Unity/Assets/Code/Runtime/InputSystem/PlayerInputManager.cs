@@ -26,8 +26,10 @@ namespace Runtime.InputSystem
             Eat = false;
             if (Gamepad.all.Count > playerID)
             {
-                moveDirection = Gamepad.all[playerID].leftStick.ReadValue();
-                Eat = Gamepad.all[playerID].allControls.Any(control => (control is ButtonControl) && control.IsPressed());
+                Gamepad gamepad = Gamepad.all[playerID];
+                moveDirection = gamepad.leftStick.ReadValue();
+                Eat = gamepad.leftShoulder.isPressed || gamepad.leftTrigger.isPressed ||
+                      gamepad.rightShoulder.isPressed || gamepad.rightTrigger.isPressed;
             }
 
             Keyboard keyboard = Keyboard.current;

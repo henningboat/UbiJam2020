@@ -21,6 +21,9 @@ namespace Runtime.ItemSystem
 			SpawnShuriken(player, new Vector3(-_distanceFromPlayer, _distanceFromPlayer));
 			SpawnShuriken(player, new Vector3(_distanceFromPlayer, -_distanceFromPlayer));
 			SpawnShuriken(player, new Vector3(-_distanceFromPlayer, -_distanceFromPlayer));
+			AudioSource audioSource = GetComponentInChildren<AudioSource>();
+			audioSource.transform.SetParent(null);
+			audioSource.Play();
 		}
 
 		#endregion
