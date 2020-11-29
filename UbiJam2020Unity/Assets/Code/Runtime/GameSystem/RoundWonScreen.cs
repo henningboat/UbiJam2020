@@ -5,6 +5,7 @@ using DG.Tweening;
 using Runtime.PlayerSystem;
 using Runtime.Utils;
 using UnityEngine;
+using UnityEngine.Playables;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -17,6 +18,8 @@ namespace Runtime.GameSystem
 		[SerializeField,] private AudioSource _koAudio;
 		[SerializeField,] private float _zoomIn = 2;
 		[SerializeField] private List<Image> _victoryScreenImages;
+		[SerializeField] private PlayableDirector _victoryPlayableDirector;
+		[SerializeField] private AudioSource _music;
 
 		#endregion
 
@@ -55,6 +58,7 @@ namespace Runtime.GameSystem
 
 		private IEnumerator ShowVictoryScreenCoroutine()
 		{
+			_music.Stop();
 			Player player = null;
 			if (GameManager.Instance.TryGetWinningPlayer(out player))
 			{
@@ -68,8 +72,11 @@ namespace Runtime.GameSystem
 					_victoryScreenImages[i].sprite = player.VictorySprites[i];
 				}
 
+				_victoryPlayableDirector.Play();
+				
 				yield return new WaitForSeconds(5);
 			}
+			SceneManager.LoadScene(0);
 		}
 	}
 }

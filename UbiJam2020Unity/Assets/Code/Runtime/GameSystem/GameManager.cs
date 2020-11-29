@@ -146,13 +146,20 @@ namespace Runtime.GameSystem
 
 					RoundCount++;
 
+
+					bool playerWon=false;
 					for (int i = 0; i < Score.Length; i++)
 					{
 						if (Score[i] >= GameSettings.Instance.RoundsToWin)
 						{
 							RoundWonScreen.Instance.ShowVictoryScreen();
+							playerWon = true;
 						}
-						else
+					}
+
+					if (playerWon == false)
+					{
+						for (int i = 0; i < Score.Length; i++)
 						{
 							RoundWonScreen.Instance.ShowKOScreen();
 						}

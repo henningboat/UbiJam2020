@@ -16,7 +16,6 @@ namespace Runtime.GameSystem
 		[SerializeField,] private Player _playerPinkPrefab;
 		[SerializeField,] private Player _playerOrangePrefab;
 		[SerializeField,] private float _itemCollectionDistance;
-		[SerializeField,] private int _victoriesToWin = 5;
 		[SerializeField] private int _roundsToWin = 7;
 
 		#endregion
