@@ -14,7 +14,7 @@ namespace Runtime.GameSystem
 
 		private static PlayerType[] _selectedPlayerTypes = { PlayerType.PlayerBlue, PlayerType.PlayerYellow, };
 		public static int RoundCount { get; private set; }
-		private static int[] Score { get; set; }
+		public static int[] Score { get; set; }
 
 		[RuntimeInitializeOnLoadMethod,]
 		static void InitializeScore()
@@ -36,6 +36,7 @@ namespace Runtime.GameSystem
 		private int AlivePlayerCount => Players.Count(player => player.State == PlayerState.Alive);
 		protected override GameState InitialState => GameState.InitializeGame;
 		public List<Player> Players { get; private set; }
+		public event Action<int> OnVictory;
 
 		#endregion
 
@@ -95,11 +96,12 @@ namespace Runtime.GameSystem
 						if (player.State == PlayerState.Alive)
 						{
 							Score[i]++;
+							OnVictory?.Invoke(i);
 						}
 					}
 
 					RoundCount++;
-
+					
 					RoundWonScreen.Instance.Show();
 					break;
 				default:
