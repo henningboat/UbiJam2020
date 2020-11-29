@@ -130,6 +130,11 @@ namespace Runtime.GameSystem
 		}
 
 		#endregion
+
+		public static void SetCharacterSelection(int playerID, PlayerType playerType)
+		{
+			_selectedPlayerTypes[playerID] = playerType;
+		}
 	}
 
 	public enum GameState

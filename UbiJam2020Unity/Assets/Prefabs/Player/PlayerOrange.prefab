@@ -461,6 +461,22 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2908426823989832134, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
+      propertyPath: m_RootOrder
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3233183233737892388, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
+      propertyPath: _characterSelectionSprite
+      value: 
+      objectReference: {fileID: 21300000, guid: edbaa49c3f8edb24dbc82de285b42519, type: 3}
+    - target: {fileID: 3233183233737892388, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
+      propertyPath: _selectionAudioClip
+      value: 
+      objectReference: {fileID: 8300000, guid: cfa29b2b0a9ca1f4789408a780b8a710, type: 3}
+    - target: {fileID: 3233183233737892388, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
+      propertyPath: _playerType
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 3233183233737892389, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Runtime.PlayerSystem;
 using Runtime.Utils;
 using UnityEngine;
@@ -14,8 +15,8 @@ namespace Runtime.GameSystem
 		[SerializeField,] private Player _playerYellowPrefab;
 		[SerializeField,] private Player _playerPinkPrefab;
 		[SerializeField,] private Player _playerOrangePrefab;
-		[SerializeField] private float _itemCollectionDistance;
-		[SerializeField] private int _victoriesToWin = 5;
+		[SerializeField,] private float _itemCollectionDistance;
+		[SerializeField,] private int _victoriesToWin = 5;
 
 		#endregion
 
@@ -46,6 +47,14 @@ namespace Runtime.GameSystem
 				default:
 					throw new ArgumentOutOfRangeException(nameof(playerType), playerType, null);
 			}
+		}
+
+		public List<Player> GetAllPlayerPrefabs()
+		{
+			return new List<Player>
+			       {
+				       _playerBluePrefab, _playerYellowPrefab, _playerPinkPrefab, _playerOrangePrefab,
+			       };
 		}
 
 		#endregion

@@ -29,12 +29,17 @@ namespace Runtime.PlayerSystem
 		private Vector2 _heading;
 		private float _speedMultiplier;
 		private float _speedMultiplierEndTime = float.MinValue;
+		[SerializeField] private Sprite _characterSelectionSprite;
+		[SerializeField] private AudioClip _selectionAudioClip;
 
 		#endregion
 
 		#region Properties
 
 		protected override PlayerState InitialState => PlayerState.Alive;
+		public Sprite CharacterSelectionSprite => _characterSelectionSprite;
+		public PlayerType PlayerType => _playerType;
+		public AudioClip SelectionAudioClip => _selectionAudioClip;
 
 		#endregion
 
