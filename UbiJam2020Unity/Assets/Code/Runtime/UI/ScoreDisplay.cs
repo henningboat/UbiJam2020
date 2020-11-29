@@ -2,6 +2,7 @@
 using System.Collections;
 using DG.Tweening;
 using Runtime.GameSystem;
+using Runtime.PlayerSystem;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,6 +18,13 @@ namespace Runtime.UI
 		[SerializeField,] private GameObject _scoreIconPrefab;
 		[SerializeField,] private GameObject _backgroundIconPrefab;
 		[SerializeField,] private Image _characterImage;
+		[SerializeField,] private Image _patchImage;
+
+		#endregion
+
+		#region Private Fields
+
+		private Player _playerInstance;
 
 		#endregion
 
@@ -40,8 +48,17 @@ namespace Runtime.UI
 
 			yield return null;
 
-			_characterImage.sprite = GameManager.Instance.Players[_playerID].PlayerIcon;
+			_playerInstance = GameManager.Instance.Players[_playerID];
+			_characterImage.sprite = _playerInstance.PlayerIcon;
 			_characterImage.DOFade(1, 0.1f);
+		}
+
+		private void Update()
+		{
+			if (_playerInstance != null)
+			{
+				_patchImage.enabled = _playerInstance.HasPatch;
+			}
 		}
 
 		#endregion

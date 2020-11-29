@@ -178,6 +178,10 @@ MonoBehaviour:
   _rotationSpeed: 10000000
   _allowSliding: 0
   _eatSound: {fileID: 7437117603656591430}
+  _characterSelectionSprite: {fileID: 0}
+  _selectionAudioClip: {fileID: 0}
+  _playerIcon: {fileID: 0}
+  _victorySprites: []
 --- !u!114 &5924812418417555254
 MonoBehaviour:
   m_ObjectHideFlags: 0

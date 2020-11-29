@@ -27,6 +27,7 @@ namespace Runtime.ItemSystem
 		private IEnumerator Start()
 		{
 			transform.position = (Random.insideUnitCircle.normalized * 5) + new Vector2(5, 5);
+			transform.eulerAngles = Vector3.forward * -Vector2.Angle(Vector2.right, ((Vector2) transform.position) - (new Vector2(5, 5)));
 			yield return new WaitForSeconds(_startDelay);
 			_startedMoving = true;
 			GetComponentInChildren<AudioSource>().Play();

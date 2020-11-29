@@ -333,9 +333,13 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 383928710845501981, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -1.11
+      objectReference: {fileID: 0}
     - target: {fileID: 2908426823989832134, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
       propertyPath: m_RootOrder
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 3233183233737892388, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
       propertyPath: _victorySprites.Array.size

@@ -30,6 +30,11 @@ namespace Runtime.ItemSystem
 				yield return null;
 			}
 
+			if (_debugItem != null)
+			{
+				_itemSpawnChance = 1;
+			}
+			
 			if (GameManager.RoundCount > _startSpawningItemsAfterRounds || _debugItem != null)
 			{
 				StartCoroutine(SpawnItemsCoroutine());

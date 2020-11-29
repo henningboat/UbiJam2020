@@ -22,7 +22,7 @@ namespace Runtime.PlayerSystem
 		[SerializeField,] private AudioClip _selectionAudioClip;
 		[SerializeField,] private Sprite _playerIcon;
 		[SerializeField,] private Sprite[] _victorySprites;
-
+		
 		#endregion
 
 		#region Private Fields
@@ -46,6 +46,7 @@ namespace Runtime.PlayerSystem
 		public AudioClip SelectionAudioClip => _selectionAudioClip;
 		public Sprite[] VictorySprites => _victorySprites;
 		public int PlayerID => _playerID;
+		public bool HasPatch { get => _hasPatch; set => _hasPatch = value; }
 
 		#endregion
 
@@ -65,7 +66,6 @@ namespace Runtime.PlayerSystem
 			switch (State)
 			{
 				case PlayerState.Alive:
-
 					if (GameManager.Instance.State == GameState.Active)
 					{
 						if (input.DirectionalInput.magnitude > Mathf.Epsilon)
@@ -140,7 +140,7 @@ namespace Runtime.PlayerSystem
 
 		public void GivePatch()
 		{
-			_hasPatch = true;
+			HasPatch = true;
 		}
 
 		#endregion
@@ -154,10 +154,10 @@ namespace Runtime.PlayerSystem
 				case PlayerState.Alive:
 					if (GameSurface.GameSurface.Instance.GetNodeAtPosition(transform.position).State == SurfaceState.Destroyed)
 					{
-						if (_hasPatch)
+						if (HasPatch)
 						{
 							GameSurface.GameSurface.Instance.SpawnPatch(transform.position);
-							_hasPatch = false;
+							HasPatch = false;
 						}
 						else
 						{

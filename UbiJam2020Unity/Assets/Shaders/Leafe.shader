@@ -5,6 +5,7 @@
         _MainTex ("Texture", 2D) = "white" {}
         _Mask ("_Mask", 2D) = "white" {}
         _PatchTex ("_Mask", 2D) = "white" {}
+        _FogColor ("_FogColor", Color) = (0,0,0,0)
         [Toggle]_ShowMap ("ShowMask", Float) = 0
         _PatchTransformation ("_PatchTransformation", Vector) = (0,0,0,0)
     }
@@ -39,6 +40,7 @@
             sampler2D _PatchTex;
             float4 _MainTex_ST;
             float4 _Mask_ST;
+            float4 _FogColor;
 
             float _ShowMap;
             float3 _PatchTransformation;
@@ -68,6 +70,8 @@
                 }
                 
                 col.rgb = lerp(col, patchCol.rgb,patchCol.a);
+                
+                col.rgb=lerp(col.rgb, _FogColor.rgb,min(0.8,_FogColor.a*i.positionWS.z));
                 
                 clip(maskCol.a*col.a-0.5);
                 
