@@ -14,12 +14,14 @@ namespace Runtime.GameSystem
 		[SerializeField,] private Player _playerYellowPrefab;
 		[SerializeField,] private Player _playerPinkPrefab;
 		[SerializeField,] private Player _playerOrangePrefab;
+		[SerializeField] private float _itemCollectionDistance;
 
 		#endregion
 
 		#region Properties
 
 		public float Gravity => _gravity;
+		public float ItemCollectionDistance => _itemCollectionDistance;
 
 		#endregion
 

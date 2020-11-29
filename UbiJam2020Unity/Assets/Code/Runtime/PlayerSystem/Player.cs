@@ -27,7 +27,9 @@ namespace Runtime.PlayerSystem
 		private Vector2 _lastFramePosition;
 		private int _playerID;
 		private Vector2 _heading;
-		
+		private float _speedMultiplier;
+		private float _speedMultiplierEndTime=float.MinValue;
+
 		#endregion
 
 		#region Properties
@@ -55,14 +57,12 @@ namespace Runtime.PlayerSystem
 
 					if (GameManager.Instance.State == GameState.Active)
 					{
-
 						if (input.DirectionalInput.magnitude > Mathf.Epsilon)
 						{
 							_heading = input.DirectionalInput.normalized;
 						}
 
 						transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(Vector3.forward, _heading), _rotationSpeed * Time.deltaTime);
-
 
 						float speed;
 						if (input.DirectionalInput.magnitude > Mathf.Epsilon)
@@ -72,6 +72,11 @@ namespace Runtime.PlayerSystem
 						else
 						{
 							speed = 0;
+						}
+
+						if (Time.time < _speedMultiplierEndTime)
+						{
+							speed *= _speedMultiplier;
 						}
 
 						TryTranslate(transform.up * (Time.deltaTime * speed));
@@ -226,6 +231,12 @@ namespace Runtime.PlayerSystem
 		}
 
 		#endregion
+
+		public void SetSpeedMultiplier(float speedMultiplier, float duration)
+		{
+			_speedMultiplier = speedMultiplier;
+			_speedMultiplierEndTime = Time.time + duration;
+		}
 	}
 
 	public enum PlayerState

@@ -282,5 +282,20 @@ namespace Runtime.GameSurface
 		}
 
 		#endregion
+
+		public void DestroyCircle(Vector3 explosionRadius, float radius)
+		{
+			for (int x = 0; x < _resolution; x++)
+			{
+				for (int y = 0; y < _resolution; y++)
+				{
+					Vector2 positonWS = new Vector2(((float)x/_resolution)*_size,((float)y/_resolution)*_size);
+					if (Vector2.Distance(explosionRadius, positonWS) < radius)
+					{
+						Cut(positonWS, positonWS);
+					}
+				}
+			}
+		}
 	}
 }

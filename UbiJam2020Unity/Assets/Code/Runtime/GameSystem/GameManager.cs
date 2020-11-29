@@ -21,7 +21,7 @@ namespace Runtime.GameSystem
 		#endregion
 
 		private bool _initialized;
-		private List<Player> _players;
+		public List<Player> Players { get; private set; }
 
 		#region Protected methods
 
@@ -79,19 +79,19 @@ namespace Runtime.GameSystem
 			}
 		}
 
-		private int AlivePlayerCount => _players.Count(player => player.State == PlayerState.Alive);
+		private int AlivePlayerCount => Players.Count(player => player.State == PlayerState.Alive);
 
 		private IEnumerator SpawnPlayers()
 		{
 			yield return null;
-			_players=new List<Player>();
+			Players=new List<Player>();
 			for (int i = 0; i < _selectedPlayerTypes.Length; i++)
 			{
 				var spawnPoint = PlayerSpawnPoints.Instance.GetForPlayer(i);
 				Player playerPrefab = GameSettings.Instance.GetPlayerPrefab(_selectedPlayerTypes[i]);
 				var playerInstance = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
 				playerInstance.SetPlayerID(i);
-				_players.Add(playerInstance);
+				Players.Add(playerInstance);
 			}
 
 			_initialized = true;

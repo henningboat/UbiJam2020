@@ -48,3 +48,4 @@ MonoBehaviour:
   _playerYellowPrefab: {fileID: 7471395151720182580, guid: ecd8a7f5d0920a840ac6a3941a481b98, type: 3}
   _playerPinkPrefab: {fileID: 3000725830074943131, guid: 6cfd14cc54eb4a842b1885531a610122, type: 3}
   _playerOrangePrefab: {fileID: 6598984813116683162, guid: 5930f3c1a29688946a44f5bcc5e109d6, type: 3}
+  _itemCollectionDistance: 1
