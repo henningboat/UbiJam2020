@@ -60,7 +60,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _PatchTex:
-        m_Texture: {fileID: 2800000, guid: 588a2e86da710a04fa66f106340b5a50, type: 3}
+        m_Texture: {fileID: 2800000, guid: 6badd20d747151c459822ccadd44400f, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Floats:
