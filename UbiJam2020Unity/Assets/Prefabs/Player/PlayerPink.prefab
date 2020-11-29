@@ -306,6 +306,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3233183233737892388, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
+      propertyPath: _victorySprites.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3233183233737892388, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
       propertyPath: _characterSelectionSprite
       value: 
       objectReference: {fileID: 21300000, guid: 9f7c796ec9d02db49b9e196d887175f9, type: 3}
@@ -317,6 +321,22 @@ PrefabInstance:
       propertyPath: _playerType
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 3233183233737892388, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
+      propertyPath: _playerIcon
+      value: 
+      objectReference: {fileID: 21300000, guid: 3906d96062121a74cb0783fa156b5956, type: 3}
+    - target: {fileID: 3233183233737892388, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
+      propertyPath: _victorySprites.Array.data[0]
+      value: 
+      objectReference: {fileID: 21300000, guid: 59f96d5f8f9d4d242aa5986feebb5aab, type: 3}
+    - target: {fileID: 3233183233737892388, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
+      propertyPath: _victorySprites.Array.data[1]
+      value: 
+      objectReference: {fileID: 21300000, guid: fe261c9fa24e4bd41801d4460bc46f4d, type: 3}
+    - target: {fileID: 3233183233737892388, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
+      propertyPath: _victorySprites.Array.data[2]
+      value: 
+      objectReference: {fileID: 21300000, guid: 4bb76623d49a73245b07dc048518cdd6, type: 3}
     - target: {fileID: 3233183233737892389, guid: 5cf3d648594330741bbc0b12596c2b5b, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

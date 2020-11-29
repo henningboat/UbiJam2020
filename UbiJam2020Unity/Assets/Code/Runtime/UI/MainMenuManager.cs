@@ -41,14 +41,12 @@ namespace Runtime.UI
 					{
 						return MainMenuState.CharacterSelection;
 					}
-
 					break;
 				case MainMenuState.CharacterSelection:
 					if (_characterSelectionScreens.All(screen => screen.SelectionDone))
 					{
 						return MainMenuState.Starting;
 					}
-
 					break;
 				case MainMenuState.Starting:
 					break;

@@ -23,6 +23,17 @@ namespace Runtime.GameSystem
 			RoundCount = 0;
 		}
 
+		public static void SetCharacterSelection(int playerID, PlayerType playerType)
+		{
+			_selectedPlayerTypes[playerID] = playerType;
+		}
+
+		#endregion
+
+		#region Events
+
+		public event Action<int> OnVictory;
+
 		#endregion
 
 		#region Private Fields
@@ -36,7 +47,40 @@ namespace Runtime.GameSystem
 		private int AlivePlayerCount => Players.Count(player => player.State == PlayerState.Alive);
 		protected override GameState InitialState => GameState.InitializeGame;
 		public List<Player> Players { get; private set; }
-		public event Action<int> OnVictory;
+
+		#endregion
+
+		#region Public methods
+
+		public bool TryGetDeadPlayer(out Player deadPlayer)
+		{
+			foreach (var player in Players)
+			{
+				if (player.State == PlayerState.Dead)
+				{
+					deadPlayer = player;
+					return true;
+				}
+			}
+
+			deadPlayer = null;
+			return false;
+		}
+
+		public bool TryGetWinningPlayer(out Player alivePlayer)
+		{
+			foreach (var player in Players)
+			{
+				if (player.State == PlayerState.Alive)
+				{
+					alivePlayer = player;
+					return true;
+				}
+			}
+
+			alivePlayer = null;
+			return false;
+		}
 
 		#endregion
 
@@ -101,8 +145,19 @@ namespace Runtime.GameSystem
 					}
 
 					RoundCount++;
-					
-					RoundWonScreen.Instance.Show();
+
+					for (int i = 0; i < Score.Length; i++)
+					{
+						if (Score[i] >= GameSettings.Instance.RoundsToWin)
+						{
+							RoundWonScreen.Instance.ShowVictoryScreen();
+						}
+						else
+						{
+							RoundWonScreen.Instance.ShowKOScreen();
+						}
+					}
+
 					break;
 				default:
 					throw new ArgumentOutOfRangeException(nameof(newState), newState, null);
@@ -130,11 +185,6 @@ namespace Runtime.GameSystem
 		}
 
 		#endregion
-
-		public static void SetCharacterSelection(int playerID, PlayerType playerType)
-		{
-			_selectedPlayerTypes[playerID] = playerType;
-		}
 	}
 
 	public enum GameState

@@ -17,6 +17,7 @@ namespace Runtime.GameSystem
 		[SerializeField,] private Player _playerOrangePrefab;
 		[SerializeField,] private float _itemCollectionDistance;
 		[SerializeField,] private int _victoriesToWin = 5;
+		[SerializeField] private int _roundsToWin = 7;
 
 		#endregion
 
@@ -24,6 +25,7 @@ namespace Runtime.GameSystem
 
 		public float Gravity => _gravity;
 		public float ItemCollectionDistance => _itemCollectionDistance;
+		public int RoundsToWin => _roundsToWin;
 
 		#endregion
 

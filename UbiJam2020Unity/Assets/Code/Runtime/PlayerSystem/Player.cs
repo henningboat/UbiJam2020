@@ -17,6 +17,10 @@ namespace Runtime.PlayerSystem
 		[SerializeField,] private float _rotationSpeed = 100;
 		[SerializeField,] private bool _allowSliding;
 		[SerializeField,] private AudioSource _eatSound;
+		[SerializeField,] private Sprite _characterSelectionSprite;
+		[SerializeField,] private AudioClip _selectionAudioClip;
+		[SerializeField,] private Sprite _playerIcon;
+		[SerializeField,] private Sprite[] _victorySprites;
 
 		#endregion
 
@@ -29,17 +33,17 @@ namespace Runtime.PlayerSystem
 		private Vector2 _heading;
 		private float _speedMultiplier;
 		private float _speedMultiplierEndTime = float.MinValue;
-		[SerializeField] private Sprite _characterSelectionSprite;
-		[SerializeField] private AudioClip _selectionAudioClip;
 
 		#endregion
 
 		#region Properties
 
-		protected override PlayerState InitialState => PlayerState.Alive;
 		public Sprite CharacterSelectionSprite => _characterSelectionSprite;
+		protected override PlayerState InitialState => PlayerState.Alive;
+		public Sprite PlayerIcon => _playerIcon;
 		public PlayerType PlayerType => _playerType;
 		public AudioClip SelectionAudioClip => _selectionAudioClip;
+		public Sprite[] VictorySprites => _victorySprites;
 
 		#endregion
 
