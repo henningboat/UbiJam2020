@@ -17,7 +17,7 @@ namespace Runtime.GameSystem
 		public static int[] Score { get; set; }
 
 		[RuntimeInitializeOnLoadMethod,]
-		static void InitializeScore()
+		public static void InitializeScore()
 		{
 			Score = new int[2];
 			RoundCount = 0;

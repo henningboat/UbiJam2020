@@ -67,6 +67,7 @@ namespace Runtime.UI
 				case MainMenuState.TitleScreen:
 					break;
 				case MainMenuState.CharacterSelection:
+					GameManager.InitializeScore();
 					_titleScreenClosedAudio.Play();
 					_titleScreenAudio.Stop();
 					CharacterScreenOpenedTime = float.MaxValue;
