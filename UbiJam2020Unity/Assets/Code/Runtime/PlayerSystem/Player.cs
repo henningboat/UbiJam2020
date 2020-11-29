@@ -4,6 +4,7 @@ using Runtime.GameSystem;
 using Runtime.InputSystem;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Runtime.PlayerSystem
 {
@@ -44,6 +45,7 @@ namespace Runtime.PlayerSystem
 		public PlayerType PlayerType => _playerType;
 		public AudioClip SelectionAudioClip => _selectionAudioClip;
 		public Sprite[] VictorySprites => _victorySprites;
+		public int PlayerID => _playerID;
 
 		#endregion
 
@@ -58,7 +60,7 @@ namespace Runtime.PlayerSystem
 		{
 			base.Update();
 
-			var input = PlayerInputManager.Instance.GetInputForPlayer(_playerID);
+			var input = PlayerInputManager.Instance.GetInputForPlayer(PlayerID);
 
 			switch (State)
 			{

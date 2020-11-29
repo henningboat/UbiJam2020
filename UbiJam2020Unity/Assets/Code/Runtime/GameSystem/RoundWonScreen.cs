@@ -17,9 +17,12 @@ namespace Runtime.GameSystem
 
 		[SerializeField,] private AudioSource _koAudio;
 		[SerializeField,] private float _zoomIn = 2;
-		[SerializeField] private List<Image> _victoryScreenImages;
-		[SerializeField] private PlayableDirector _victoryPlayableDirector;
-		[SerializeField] private AudioSource _music;
+		[SerializeField,] private List<Image> _victoryScreenImages;
+		[SerializeField,] private PlayableDirector _victoryPlayableDirector;
+		[SerializeField,] private AudioSource _music;
+		[SerializeField,] private Image _playerVictory;
+		[SerializeField,] private Sprite _player0Sprite;
+		[SerializeField,] private Sprite _player1Sprite;
 
 		#endregion
 
@@ -28,6 +31,11 @@ namespace Runtime.GameSystem
 		public void ShowKOScreen()
 		{
 			StartCoroutine(ShowKOScreenRoutine());
+		}
+
+		public void ShowVictoryScreen()
+		{
+			StartCoroutine(ShowVictoryScreenCoroutine());
 		}
 
 		#endregion
@@ -49,23 +57,17 @@ namespace Runtime.GameSystem
 			SceneManager.LoadScene(1);
 		}
 
-		#endregion
-
-		public void ShowVictoryScreen()
-		{
-			StartCoroutine(ShowVictoryScreenCoroutine());
-		}
-
 		private IEnumerator ShowVictoryScreenCoroutine()
 		{
 			_music.Stop();
 			Player player = null;
 			if (GameManager.Instance.TryGetWinningPlayer(out player))
 			{
+				_playerVictory.sprite = player.PlayerID == 0 ? _player0Sprite : _player1Sprite;
+
 				Vector3 targetPosition = player.transform.position;
 				targetPosition.z = Camera.main.transform.position.z + _zoomIn;
 				Camera.main.transform.DOMove(targetPosition, 1);
-
 
 				for (int i = 0; i < _victoryScreenImages.Count; i++)
 				{
@@ -73,10 +75,13 @@ namespace Runtime.GameSystem
 				}
 
 				_victoryPlayableDirector.Play();
-				
+
 				yield return new WaitForSeconds(5);
 			}
+
 			SceneManager.LoadScene(0);
 		}
+
+		#endregion
 	}
 }

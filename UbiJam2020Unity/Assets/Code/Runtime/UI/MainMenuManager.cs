@@ -5,6 +5,7 @@ using DG.Tweening;
 using Runtime.GameSystem;
 using Runtime.InputSystem;
 using UnityEngine;
+using UnityEngine.Playables;
 using UnityEngine.SceneManagement;
 
 namespace Runtime.UI
@@ -20,6 +21,8 @@ namespace Runtime.UI
 		[SerializeField,] private AudioSource _titleScreenClosedAudio;
 		[SerializeField,] private AudioSource _selectionScreenAudio;
 		[SerializeField,] private AudioSource _chooseYourFighterAudio;
+		[SerializeField,] private CanvasGroup _characterSelectionCanvasGroup;
+		[SerializeField] private PlayableDirector _titleScreenPlayableDirector;
 
 		#endregion
 
@@ -66,12 +69,15 @@ namespace Runtime.UI
 				case MainMenuState.CharacterSelection:
 					_titleScreenClosedAudio.Play();
 					_titleScreenAudio.Stop();
-					CharacterScreenOpenedTime = Time.time;
+					CharacterScreenOpenedTime = float.MaxValue;
+					_titleScreenPlayableDirector.Play();
 					_titleScreenCanvasGroup.DOFade(0, 0.3f).OnComplete(() =>
 					                                                   {
+						                                                   _characterSelectionCanvasGroup.DOFade(1, 0.5f);
 						                                                   _selectionScreenAudio.Play();
 						                                                   _chooseYourFighterAudio.Play();
-					                                                   }).SetDelay(0.5f);
+						                                                   CharacterScreenOpenedTime = Time.time;
+					                                                   }).SetDelay(1.5f);
 					break;
 				case MainMenuState.Starting:
 					_blackfade.DOFade(1, 0.5f).OnComplete(() => SceneManager.LoadScene(1)).SetDelay(1f);
