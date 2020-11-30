@@ -80,8 +80,10 @@ namespace Runtime.ItemSystem
 
 			Vector3 position = (Vector2.one * 5) + (Random.insideUnitCircle * 4.5f);
 
-			while (GameManager.Instance.Players.Any(player => Vector3.Distance(player.transform.position, position) < 5))
+			int count = 0;
+			while (count < 500 && GameManager.Instance.Players.Any(player => Vector3.Distance(player.transform.position, position) < 2))
 			{
+				count++;
 				position = (Vector2.one * 5) + (Random.insideUnitCircle * 4.5f);
 			}
 
