@@ -1,15 +1,22 @@
 ﻿using System;
+using System.Collections;
+using System.Linq;
+using Photon.Pun;
 using Runtime.GameSurface;
 using Runtime.GameSystem;
 using Runtime.InputSystem;
-using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace Runtime.PlayerSystem
 {
-	public class Player : StateMachineBase<PlayerState>
+	public class Player : PhotonStateMachine<PlayerState>
 	{
+		#region Static Stuff
+
+		private const float CutDuration = 0.1f;
+
+		#endregion
+
 		#region Serialize Fields
 
 		[SerializeField,] private PlayerType _playerType;
@@ -22,18 +29,20 @@ namespace Runtime.PlayerSystem
 		[SerializeField,] private AudioClip _selectionAudioClip;
 		[SerializeField,] private Sprite _playerIcon;
 		[SerializeField,] private Sprite[] _victorySprites;
-		
+
 		#endregion
 
 		#region Private Fields
 
-		private bool _hasPatch;
 		private float _velocity;
-		private Vector2 _lastFramePosition;
-		private int _playerID;
 		private Vector2 _heading;
 		private float _speedMultiplier;
 		private float _speedMultiplierEndTime = float.MinValue;
+		private Vector3? _cutStartPosition;
+		private float _cutStartTime;
+		private PhotonView _photonView;
+		private Vector2Int _lastNodePosition;
+		private Vector2Int _currentNodePosition;
 
 		#endregion
 
@@ -45,23 +54,36 @@ namespace Runtime.PlayerSystem
 		public PlayerType PlayerType => _playerType;
 		public AudioClip SelectionAudioClip => _selectionAudioClip;
 		public Sprite[] VictorySprites => _victorySprites;
-		public int PlayerID => _playerID;
-		public bool HasPatch { get => _hasPatch; set => _hasPatch = value; }
+		public bool HasPatch { get; set; }
+		public int PlayerID { get; private set; }
 
 		#endregion
 
 		#region Unity methods
 
+		private void Awake()
+		{
+			_photonView = GetComponent<PhotonView>();
+			PlayerID = _photonView.Owner.ActorNumber - 1;
+			Debug.Log(PlayerID);
+		}
+
 		private void Start()
 		{
 			_heading = transform.up;
+			GameManager.Instance.Register(this);
 		}
 
 		protected override void Update()
 		{
+			if (!_photonView.IsMine)
+			{
+				return;
+			}
+
 			base.Update();
 
-			var input = PlayerInputManager.Instance.GetInputForPlayer(PlayerID);
+			PlayerInput input = PlayerInputManager.Instance.GetInputForPlayer(PlayerID);
 
 			switch (State)
 			{
@@ -90,11 +112,23 @@ namespace Runtime.PlayerSystem
 							speed *= _speedMultiplier;
 						}
 
+						if (input.Eat && (_cutStartPosition == null))
+						{
+							_cutStartPosition = transform.position;
+							_cutStartTime = Time.time;
+						}
+
 						TryTranslate(transform.up * (Time.deltaTime * speed));
 
-						if (input.Eat)
+						if (_cutStartPosition != null)
 						{
-							GameSurface.GameSurface.Instance.Cut(transform.position, _lastFramePosition);
+							if ((input.Eat == false) || (Time.time - _cutStartTime > CutDuration))
+							{
+								Vector3 cutStartPosition = _cutStartPosition.Value;
+								Vector3 transformPosition = transform.position;
+								 GameSurface.GameSurface.Instance.Cut(cutStartPosition, transformPosition);
+								_cutStartPosition = null;
+							}
 						}
 
 						if (input.Eat != _eatSound.isPlaying)
@@ -119,18 +153,11 @@ namespace Runtime.PlayerSystem
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
-
-			_lastFramePosition = transform.position;
 		}
 
 		#endregion
 
 		#region Public methods
-
-		public void SetPlayerID(int i)
-		{
-			_playerID = i;
-		}
 
 		public void SetSpeedMultiplier(float speedMultiplier, float duration)
 		{
@@ -147,6 +174,22 @@ namespace Runtime.PlayerSystem
 
 		#region Protected methods
 
+		protected override byte StateToByte(PlayerState state)
+		{
+			return (byte) state;
+		}
+
+		protected override PlayerState ByteToState(byte state)
+		{
+			return (PlayerState) state;
+		}
+
+		[PunRPC,]
+		protected override void RPCOnStateChange(byte oldStateByte, byte newStateByte)
+		{
+			base.RPCOnStateChange(oldStateByte, newStateByte);
+		}
+
 		protected override PlayerState GetNextState()
 		{
 			switch (State)
@@ -161,7 +204,10 @@ namespace Runtime.PlayerSystem
 						}
 						else
 						{
-							return PlayerState.Dead;
+							if (!TrySafePlayerFromFalling())
+							{
+								return PlayerState.Dead;
+							}
 						}
 					}
 
@@ -183,21 +229,38 @@ namespace Runtime.PlayerSystem
 
 		#region Private methods
 
+		private IEnumerator Delayed(Action a)
+		{
+			yield return new WaitForSeconds(1);
+			a.Invoke();
+		}
+
+		private bool TrySafePlayerFromFalling()
+		{
+			if (GameSurface.GameSurface.Instance.GetNodeAtGridPosition(_lastNodePosition).State != SurfaceState.Destroyed)
+			{
+				transform.position = GameSurface.GameSurface.Instance.GridPositionToWorldPosition(_lastNodePosition);
+				return true;
+			}
+
+			return false;
+		}
+
 		private void TryTranslate(Vector2 positionDelta)
 		{
-			var direction = positionDelta.normalized;
-			var distanceToTravel = positionDelta.magnitude;
-			var stepSize = GameSurface.GameSurface.Instance.WorldSpaceGridNodeSize;
+			Vector2 direction = positionDelta.normalized;
+			float distanceToTravel = positionDelta.magnitude;
+			float stepSize = GameSurface.GameSurface.Instance.WorldSpaceGridNodeSize;
 
 			bool? invertMinor = null;
 
 			while (distanceToTravel > 0)
 			{
-				var currentStepSize = Mathf.Min(stepSize, distanceToTravel);
+				float currentStepSize = Mathf.Min(stepSize, distanceToTravel);
 
-				var didMove = false;
+				bool didMove = false;
 
-				var offset = direction * currentStepSize;
+				Vector2 offset = direction * currentStepSize;
 
 				Vector2 absOffset = new Vector2(Mathf.Abs(offset.x), Mathf.Abs(offset.y));
 				bool mayorIsHorizontal = absOffset.x > absOffset.y;
@@ -248,19 +311,31 @@ namespace Runtime.PlayerSystem
 				return false;
 			}
 
-			var node = GameSurface.GameSurface.Instance.GetNodeAtPosition((Vector2) transform.position + offset);
+			SurfacePiece node = GameSurface.GameSurface.Instance.GetNodeAtPosition((Vector2) transform.position + offset);
 			if (node.State == SurfaceState.Destroyed)
 			{
 				return false;
 			}
 
 			transform.position += (Vector3) offset;
+
+			if (node.Position != _currentNodePosition)
+			{
+				_lastNodePosition = _currentNodePosition;
+			}
+			_currentNodePosition = node.Position;
+			
 			didMove = true;
 			distanceToTravel -= offset.magnitude;
 			return true;
 		}
 
 		#endregion
+
+		public static Player GetFromPhotonPlayer(Photon.Realtime.Player photonPlayer)
+		{
+			return GameManager.Instance.Players.FirstOrDefault(player => player.PhotonView.Owner.ActorNumber == photonPlayer.ActorNumber);
+		}
 	}
 
 	public enum PlayerState

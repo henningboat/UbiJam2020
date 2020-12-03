@@ -32,9 +32,12 @@ namespace Runtime.ItemSystem
 			yield return new WaitForFixedUpdate();
 			_explosionSprite.enabled = false;
 			_explosionSprite2.enabled = true;
-			
-			GameSurface.GameSurface.Instance.DestroyCircle(transform.position, _radius);
-		
+
+			if (IsMine)
+			{
+				GameSurface.GameSurface.Instance.DestroyCircle(transform.position, _radius);
+			}
+
 			yield return new WaitForFixedUpdate();
 			_explosionSprite2.enabled = false;
 			_smokeSprite.enabled = true;

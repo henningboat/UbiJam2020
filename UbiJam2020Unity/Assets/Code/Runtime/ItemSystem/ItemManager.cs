@@ -1,12 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Photon.Pun;
 using Runtime.GameSystem;
 using Runtime.Utils;
 using UnityEngine;
 
 namespace Runtime.ItemSystem
 {
+	[RequireComponent(typeof(PhotonView))]
 	public class ItemManager : Singleton<ItemManager>
 	{
 		#region Serialize Fields
@@ -18,6 +20,7 @@ namespace Runtime.ItemSystem
 		[SerializeField] private int _startSpawningItemsAfterRounds = 3;
 		[SerializeField,] private List<ItemBase> _possibleItemPrefabs;
 		[SerializeField,] private ItemBase _debugItem;
+		private PhotonView _photonView;
 
 		#endregion
 
@@ -25,6 +28,12 @@ namespace Runtime.ItemSystem
 
 		private IEnumerator Start()
 		{
+			_photonView = GetComponent<PhotonView>();
+			if (!_photonView.IsMine)
+			{
+				yield break;
+			}
+
 			while (GameManager.Instance.State != GameState.Active)
 			{
 				yield return null;
@@ -87,7 +96,7 @@ namespace Runtime.ItemSystem
 				position = (Vector2.one * 5) + (Random.insideUnitCircle * 4.5f);
 			}
 
-			Instantiate(itemPrefab, position, Quaternion.identity);
+			PhotonNetwork.Instantiate(itemPrefab.name, position, Quaternion.identity);
 		}
 
 		#endregion

@@ -2,19 +2,22 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Photon.Pun;
 using Runtime.PlayerSystem;
-using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Runtime.GameSystem
 {
-	public class GameManager : StateMachineSingleton<GameState, GameManager>
+	public class GameManager : PhotonStateMachineSingleton<GameState, GameManager>
 	{
 		#region Static Stuff
 
 		private static PlayerType[] _selectedPlayerTypes = { PlayerType.PlayerBlue, PlayerType.PlayerYellow, };
 		public static int RoundCount { get; private set; }
 		public static int[] Score { get; set; }
+
+		public bool[] _playerLoaded;
 
 		[RuntimeInitializeOnLoadMethod,]
 		public static void InitializeScore()
@@ -46,7 +49,7 @@ namespace Runtime.GameSystem
 
 		private int AlivePlayerCount => Players.Count(player => player.State == PlayerState.Alive);
 		protected override GameState InitialState => GameState.InitializeGame;
-		public List<Player> Players { get; private set; }
+		public List<Player> Players { get; private set; } = new List<Player>();
 
 		#endregion
 
@@ -54,7 +57,7 @@ namespace Runtime.GameSystem
 
 		public bool TryGetDeadPlayer(out Player deadPlayer)
 		{
-			foreach (var player in Players)
+			foreach (Player player in Players)
 			{
 				if (player.State == PlayerState.Dead)
 				{
@@ -69,7 +72,7 @@ namespace Runtime.GameSystem
 
 		public bool TryGetWinningPlayer(out Player alivePlayer)
 		{
-			foreach (var player in Players)
+			foreach (Player player in Players)
 			{
 				if (player.State == PlayerState.Alive)
 				{
@@ -85,6 +88,37 @@ namespace Runtime.GameSystem
 		#endregion
 
 		#region Protected methods
+
+		[PunRPC,]
+		protected override void RPCOnStateChange(byte oldStateByte, byte newStateByte)
+		{
+			base.RPCOnStateChange(oldStateByte, newStateByte);
+		}
+
+		protected override byte StateToByte(GameState state)
+		{
+			return (byte) state;
+		}
+
+		protected override GameState ByteToState(byte state)
+		{
+			return (GameState) state;
+		}
+
+		protected override void Update()
+		{
+			base.Update();
+			if (PhotonNetwork.CurrentRoom.PlayerCount < 2 && !UnityEngine.Application.isEditor)
+			{
+				DisconnectAndLoadMenu();
+			}
+		}
+
+		public static void DisconnectAndLoadMenu()
+		{
+			PhotonNetwork.Disconnect();
+			SceneManager.LoadScene(0);
+		}
 
 		protected override GameState GetNextState()
 		{
@@ -106,7 +140,7 @@ namespace Runtime.GameSystem
 					break;
 				case GameState.Active:
 
-					if (AlivePlayerCount <= 1)
+					if (Players.Any(player => player.State == PlayerState.Dead))
 					{
 						return GameState.RoundWon;
 					}
@@ -123,6 +157,7 @@ namespace Runtime.GameSystem
 
 		protected override void OnStateChange(GameState oldState, GameState newState)
 		{
+			Debug.Log("state changed to " + newState);
 			switch (newState)
 			{
 				case GameState.InitializeGame:
@@ -136,18 +171,17 @@ namespace Runtime.GameSystem
 				case GameState.RoundWon:
 					for (int i = 0; i < Players.Count; i++)
 					{
-						var player = Players[i];
+						Player player = Players[i];
 						if (player.State == PlayerState.Alive)
 						{
-							Score[i]++;
-							OnVictory?.Invoke(i);
+							Score[player.PlayerID]++;
+							OnVictory?.Invoke(player.PlayerID);
 						}
 					}
 
 					RoundCount++;
 
-
-					bool playerWon=false;
+					bool playerWon = false;
 					for (int i = 0; i < Score.Length; i++)
 					{
 						if (Score[i] >= GameSettings.Instance.RoundsToWin)
@@ -178,24 +212,22 @@ namespace Runtime.GameSystem
 		private IEnumerator SpawnPlayers()
 		{
 			yield return null;
-			Players = new List<Player>();
-			for (int i = 0; i < _selectedPlayerTypes.Length; i++)
-			{
-				var spawnPoint = PlayerSpawnPoints.Instance.GetForPlayer(i);
-				Player playerPrefab = GameSettings.Instance.GetPlayerPrefab(_selectedPlayerTypes[i]);
-				var playerInstance = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
-				playerInstance.SetPlayerID(i);
-				Players.Add(playerInstance);
-			}
-
+			PhotonNetwork.Instantiate(_selectedPlayerTypes[0].ToString(), PlayerSpawnPoints.Instance.GetForPlayer(PhotonNetwork.LocalPlayer.ActorNumber - 1).position, Quaternion.identity);
+			
 			_initialized = true;
 		}
 
 		#endregion
+
+		public void Register(Player player)
+		{
+			Players.Add(player);
+		}
 	}
 
 	public enum GameState
 	{
+		WaitForOtherPlayers,
 		InitializeGame,
 		Intro,
 		Active,

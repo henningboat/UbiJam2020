@@ -1,4 +1,5 @@
-﻿using Runtime.PlayerSystem;
+﻿using Photon.Pun;
+using Runtime.PlayerSystem;
 
 namespace Runtime.ItemSystem
 {
@@ -6,11 +7,16 @@ namespace Runtime.ItemSystem
 	{
 		#region Protected methods
 
-		protected override void ActivateItem(Player player)
-		{
-			player.GivePatch();
-		}
-
 		#endregion
+
+		[PunRPC]
+		protected override void RPCActivateItem(PhotonView playerPhotonView)
+		{
+			if (IsMine)
+			{
+				playerPhotonView.GetComponent<Player>().GivePatch();
+			}
+			Despawn();
+		}
 	}
 }

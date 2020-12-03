@@ -1,4 +1,5 @@
-﻿using Runtime.PlayerSystem;
+﻿using Photon.Pun;
+using Runtime.PlayerSystem;
 using UnityEngine;
 
 namespace Runtime.ItemSystem
@@ -15,15 +16,22 @@ namespace Runtime.ItemSystem
 
 		#region Protected methods
 
-		protected override void ActivateItem(Player player)
+		[PunRPC,]
+		protected override void RPCActivateItem(Photon.Realtime.Player photonPlayer)
 		{
-			SpawnShuriken(player, new Vector3(_distanceFromPlayer, _distanceFromPlayer));
-			SpawnShuriken(player, new Vector3(-_distanceFromPlayer, _distanceFromPlayer));
-			SpawnShuriken(player, new Vector3(_distanceFromPlayer, -_distanceFromPlayer));
-			SpawnShuriken(player, new Vector3(-_distanceFromPlayer, -_distanceFromPlayer));
-			AudioSource audioSource = GetComponentInChildren<AudioSource>();
-			audioSource.transform.SetParent(null);
-			audioSource.Play();
+			if (IsMine)
+			{
+				Player player = 	PlayerSystem.Player.GetFromPhotonPlayer(photonPlayer);
+				SpawnShuriken(player, new Vector3(_distanceFromPlayer, _distanceFromPlayer));
+				SpawnShuriken(player, new Vector3(-_distanceFromPlayer, _distanceFromPlayer));
+				SpawnShuriken(player, new Vector3(_distanceFromPlayer, -_distanceFromPlayer));
+				SpawnShuriken(player, new Vector3(-_distanceFromPlayer, -_distanceFromPlayer));
+				AudioSource audioSource = GetComponentInChildren<AudioSource>();
+				audioSource.transform.SetParent(null);
+				audioSource.Play();
+			}
+			
+			Despawn();
 		}
 
 		#endregion
@@ -32,7 +40,7 @@ namespace Runtime.ItemSystem
 
 		private void SpawnShuriken(Player player, Vector3 offset)
 		{
-			Instantiate(_shurikenPrefab, player.transform.position + offset, Quaternion.identity).SetSpeed(_speed, offset.normalized);
+			PhotonNetwork.Instantiate(_shurikenPrefab.name, player.transform.position + offset, Quaternion.identity, default, new object[] { (Vector2) (offset.normalized * _speed), });
 		}
 
 		#endregion

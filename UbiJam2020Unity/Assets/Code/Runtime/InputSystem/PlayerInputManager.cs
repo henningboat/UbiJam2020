@@ -22,6 +22,7 @@ namespace Runtime.InputSystem
         public readonly bool Eat;
         public PlayerInput(int playerID)
         {
+            playerID = 0;
             Vector2 moveDirection = Vector2.zero;
             Eat = false;
             if (Gamepad.all.Count > playerID)

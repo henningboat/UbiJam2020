@@ -1,9 +1,9 @@
 ﻿using System;
+using Photon.Pun;
 using Runtime.Utils;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace Runtime.GameSurface
 {
@@ -16,6 +16,7 @@ namespace Runtime.GameSurface
 		[SerializeField,] private Vector2Int _startPoint = new Vector2Int(4, 4);
 		[SerializeField,] private Texture2D _gameSurfaceColorTexture;
 		[SerializeField,] private FallingPiece _fallingPiecePrefab;
+		[SerializeField,] private float _patchRadius = 2;
 
 		#endregion
 
@@ -24,8 +25,8 @@ namespace Runtime.GameSurface
 		private NativeArray<Vector2Int> _connectedPiecesKernel;
 		private Texture2D _gameSurfaceTex;
 		private NativeArray<SurfacePiece> _surface;
-		[SerializeField] private float _patchRadius = 2;
 		private Renderer _renderer;
+		private PhotonView _photonView;
 
 		#endregion
 
@@ -41,9 +42,9 @@ namespace Runtime.GameSurface
 		protected override void Awake()
 		{
 			base.Awake();
-
+			_photonView = GetComponent<PhotonView>();
 			_renderer = GetComponentInChildren<Renderer>();
-			
+
 			WorldSpaceGridNodeSize = (1f / _resolution) * _size;
 
 			_connectedPiecesKernel = new NativeArray<Vector2Int>(4, Allocator.Persistent);
@@ -57,10 +58,10 @@ namespace Runtime.GameSurface
 			_gameSurfaceTex = new Texture2D(_resolution, _resolution, TextureFormat.ARGB32, false);
 			gameObject.GetComponentInChildren<Renderer>().material.SetTexture("_Mask", _gameSurfaceTex);
 
-			for (var x = 0; x < _resolution; x++)
-			for (var y = 0; y < _resolution; y++)
+			for (int x = 0; x < _resolution; x++)
+			for (int y = 0; y < _resolution; y++)
 			{
-				var position = new Vector2Int(x, y);
+				Vector2Int position = new Vector2Int(x, y);
 
 				Vector2 uv = GridPositionToID(new Vector2Int(x, y));
 				float gamefieldTexValue = _gameSurfaceColorTexture.GetPixelBilinear(uv.x, uv.y).a;
@@ -82,24 +83,24 @@ namespace Runtime.GameSurface
 		private void LateUpdate()
 		{
 			//important, the system is doing 2 passes, so we need to increment timestamp by two
-			CurrentTimestamp+=2;
+			CurrentTimestamp += 2;
 			NativeArray<bool> anyNewSurfaceDestroyed = new NativeArray<bool>(1, Allocator.TempJob);
 
 			NativeArray<SurfacePiece> surfaceBackup = new NativeArray<SurfacePiece>(_surface, Allocator.Temp);
 
-			var nativeQueue = new NativeQueue<Vector2Int>(Allocator.TempJob);
-			var data = _gameSurfaceTex.GetRawTextureData<Color32>();
-			var validateAreaJob = new ValidateAreaJob
-			                      {
-				                      Resolution = _resolution,
-				                      Surface = _surface,
-				                      ConnectedPiecesKernel = _connectedPiecesKernel,
-				                      PositionsToValidate = nativeQueue,
-				                      Timestamp = CurrentTimestamp,
-				                      GameSurfaceTex = data,
-				                      DidCutNewSurface = anyNewSurfaceDestroyed,
-			                      };
-			var handle = validateAreaJob.Schedule();
+			NativeQueue<Vector2Int> nativeQueue = new NativeQueue<Vector2Int>(Allocator.TempJob);
+			NativeArray<Color32> data = _gameSurfaceTex.GetRawTextureData<Color32>();
+			ValidateAreaJob validateAreaJob = new ValidateAreaJob
+			                                  {
+				                                  Resolution = _resolution,
+				                                  Surface = _surface,
+				                                  ConnectedPiecesKernel = _connectedPiecesKernel,
+				                                  PositionsToValidate = nativeQueue,
+				                                  Timestamp = CurrentTimestamp,
+				                                  GameSurfaceTex = data,
+				                                  DidCutNewSurface = anyNewSurfaceDestroyed,
+			                                  };
+			JobHandle handle = validateAreaJob.Schedule();
 			handle.Complete();
 			nativeQueue.Dispose();
 			_gameSurfaceTex.Apply();
@@ -129,10 +130,10 @@ namespace Runtime.GameSurface
 				return;
 			}
 
-			for (var x = 0; x < _resolution; x++)
-			for (var y = 0; y < _resolution; y++)
+			for (int x = 0; x < _resolution; x++)
+			for (int y = 0; y < _resolution; y++)
 			{
-				var surfaceState = _surface[x + (y * _resolution)].State;
+				SurfaceState surfaceState = _surface[x + (y * _resolution)].State;
 				if (surfaceState != SurfaceState.Destroyed)
 				{
 					switch (surfaceState)
@@ -168,15 +169,97 @@ namespace Runtime.GameSurface
 			       (position.y >= 0) && (position.y < _resolution);
 		}
 
+		public void Cut(Vector2 from, Vector2 to)
+		{
+			_photonView.RPC("RPCCut", RpcTarget.AllViaServer, from, to);
+		}
+
+		public SurfacePiece GetNodeAtPosition(Vector2 position)
+		{
+			if (TryGetPositionOnGrid(position, out Vector2Int positionOnGrid))
+			{
+				return _surface[GetIndexAtPosition(positionOnGrid)];
+			}
+
+			throw new ArgumentOutOfRangeException();
+		}
+
+		public SurfacePiece GetNodeAtGridPosition(Vector2Int gridPosition)
+		{
+			return _surface[GetIndexAtPosition(gridPosition)];
+		}
+
+		public void DestroyCircle(Vector3 explosionPosition, float radius)
+		{
+			_photonView.RPC("RPCDestroyCircle", RpcTarget.AllViaServer, explosionPosition, radius);
+		}
+
+		[PunRPC]
+		private void RPCDestroyCircle(Vector3 explosionPosition, float radius)
+		{
+			for (int x = 0; x < _resolution; x++)
+			{
+				for (int y = 0; y < _resolution; y++)
+				{
+					Vector2 positonWS = new Vector2(((float) x / _resolution) * _size, ((float) y / _resolution) * _size);
+					if (Vector2.Distance(explosionPosition, positonWS) < radius)
+					{
+						CutInternal(positonWS, positonWS);
+					}
+				}
+			}
+		}
+
+		public void SpawnPatch(Vector3 patchPosition)
+		{
+			_photonView.RPC("RPCSpawnPatch", RpcTarget.AllViaServer, patchPosition);
+		}
+		
+		[PunRPC]
+		private void RPCSpawnPatch(Vector3 patchPosition)
+		{
+			for (int x = 0; x < _resolution; x++)
+			{
+				for (int y = 0; y < _resolution; y++)
+				{
+					Vector2 positonWS = new Vector2(((float) x / _resolution) * _size, ((float) y / _resolution) * _size);
+					if (Vector2.Distance(patchPosition, positonWS) < _patchRadius)
+					{
+						int index = GetIndexAtPosition(new Vector2Int(x, y));
+						SurfacePiece node = _surface[index];
+						node.State = SurfaceState.Intact;
+						_surface[index] = node;
+					}
+				}
+			}
+
+			GetComponentInChildren<Renderer>().material.SetVector("_PatchTransformation", new Vector4(patchPosition.x, patchPosition.y, _patchRadius));
+		}
+
+		public Vector3 GridPositionToWorldPosition(Vector2Int lastNodePosition)
+		{
+			return (Vector2) lastNodePosition * ((1f / _resolution) * _size);
+		}
+
+		#endregion
+
+		#region Private methods
+
 		private Vector2Int WorldSpaceToGrid(Vector2 position)
 		{
 			position /= _size;
 			return new Vector2Int(Mathf.RoundToInt(position.x * _resolution), Mathf.RoundToInt(position.y * _resolution));
 		}
 
-		public void Cut(Vector2 from, Vector2 to)
+		[PunRPC,]
+		private void RPCCut(Vector2 from, Vector2 to)
 		{
-			Vector2Int fromGridPos = WorldSpaceToGrid(from);
+			CutInternal(@from, to);
+		}
+
+		private void CutInternal(Vector2 @from, Vector2 to)
+		{
+			Vector2Int fromGridPos = WorldSpaceToGrid(@from);
 			Vector2Int toGridPos = WorldSpaceToGrid(to);
 
 			if (fromGridPos == toGridPos)
@@ -219,23 +302,9 @@ namespace Runtime.GameSurface
 
 				currentMinorPos = Mathf.RoundToInt(Mathf.Lerp(fromPosOnMinorAxis, toPosOnMinorAxis, (float) (currentMayorPos - fromPosOnMayorAxis) / (toPosOnMayorAxis - fromPosOnMayorAxis)));
 			}
-			
+
 			CutInternal(toGridPos);
 		}
-
-		public SurfacePiece GetNodeAtPosition(Vector2 position)
-		{
-			if (TryGetPositionOnGrid(position, out Vector2Int positionOnGrid))
-			{
-				return _surface[GetIndexAtPosition(positionOnGrid)];
-			}
-
-			throw new ArgumentOutOfRangeException();
-		}
-
-		#endregion
-
-		#region Private methods
 
 		private void SpawnDestroyedPart(NativeArray<SurfacePiece> surface, NativeArray<SurfacePiece> surfaceBackup)
 		{
@@ -246,8 +315,8 @@ namespace Runtime.GameSurface
 				for (int y = 0; y < _resolution; y++)
 				{
 					Color32 color = new Color32(0, 0, 0, 0);
-					var nodeNow = surface[x + (y * _resolution)];
-					var nodeBefore = surfaceBackup[x + (y * _resolution)];
+					SurfacePiece nodeNow = surface[x + (y * _resolution)];
+					SurfacePiece nodeBefore = surfaceBackup[x + (y * _resolution)];
 					if ((nodeNow.State == SurfaceState.Destroyed) && (nodeBefore.State != SurfaceState.Destroyed))
 					{
 						color = new Color32(255, 255, 255, 255);
@@ -260,7 +329,7 @@ namespace Runtime.GameSurface
 			maskTexture.SetPixels32(colors);
 			maskTexture.Apply();
 
-			var instance = Instantiate(_fallingPiecePrefab);
+			FallingPiece instance = Instantiate(_fallingPiecePrefab);
 			instance.SetMaterial(maskTexture, _renderer.material);
 		}
 
@@ -273,53 +342,18 @@ namespace Runtime.GameSurface
 		{
 			Vector2 normalizedPosition = positionWS / _size;
 			positionOnGrid = new Vector2Int(Mathf.RoundToInt(normalizedPosition.x * _resolution), Mathf.RoundToInt(normalizedPosition.y * _resolution));
-			return ((normalizedPosition.x > 0) && (normalizedPosition.y > 0) && (normalizedPosition.x < 1) && (normalizedPosition.y < 1));
+			return (normalizedPosition.x > 0) && (normalizedPosition.y > 0) && (normalizedPosition.x < 1) && (normalizedPosition.y < 1);
 		}
 
 		private void CutInternal(Vector2Int positionOnGrid)
 		{
 			if (InsideSurface(positionOnGrid))
 			{
-				var indexAtPosition = GetIndexAtPosition(positionOnGrid);
+				int indexAtPosition = GetIndexAtPosition(positionOnGrid);
 				_surface[indexAtPosition] = _surface[indexAtPosition].Cut();
 			}
 		}
 
 		#endregion
-
-		public void DestroyCircle(Vector3 explosionPosition, float radius)
-		{
-			for (int x = 0; x < _resolution; x++)
-			{
-				for (int y = 0; y < _resolution; y++)
-				{
-					Vector2 positonWS = new Vector2(((float)x/_resolution)*_size,((float)y/_resolution)*_size);
-					if (Vector2.Distance(explosionPosition, positonWS) < radius)
-					{
-						Cut(positonWS, positonWS);
-					}
-				}
-			}
-		}
-
-		public void SpawnPatch(Vector3 patchPosition)
-		{
-			for (int x = 0; x < _resolution; x++)
-			{
-				for (int y = 0; y < _resolution; y++)
-				{
-					Vector2 positonWS = new Vector2(((float)x/_resolution)*_size,((float)y/_resolution)*_size);
-					if (Vector2.Distance(patchPosition, positonWS) < _patchRadius)
-					{
-						var index = GetIndexAtPosition(new Vector2Int(x, y));
-						var node = _surface[index];
-						node.State = SurfaceState.Intact;
-						_surface[index] = node;
-					}
-				}
-			}
-
-			GetComponentInChildren<Renderer>().material.SetVector("_PatchTransformation", new Vector4(patchPosition.x, patchPosition.y, _patchRadius));
-		}
 	}
 }

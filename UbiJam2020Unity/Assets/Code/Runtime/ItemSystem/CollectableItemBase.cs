@@ -1,7 +1,9 @@
 ﻿using DG.Tweening;
+using Photon.Pun;
 using Runtime.GameSystem;
 using Runtime.PlayerSystem;
 using UnityEngine;
+using Player = Photon.Realtime.Player;
 
 namespace Runtime.ItemSystem
 {
@@ -22,22 +24,29 @@ namespace Runtime.ItemSystem
 				return;
 			}
 
-			foreach (var player in GameManager.Instance.Players)
-			{
-				if (Vector2.Distance(player.transform.position, transform.position) < GameSettings.Instance.ItemCollectionDistance)
+			if(IsMine){
+				foreach (var player in GameManager.Instance.Players)
 				{
-					_collected = true;
-					ActivateItem(player);
-					transform.DOScale(0, 0.2f).OnComplete(() => Destroy(gameObject));
+					if (Vector2.Distance(player.transform.position, transform.position) < GameSettings.Instance.ItemCollectionDistance)
+					{
+						_collected = true;
+						_photonView.RPC("RPCActivateItem", RpcTarget.AllViaServer, PhotonNetwork.LocalPlayer);
+						break;
+					}
 				}
 			}
+		}
+
+		protected override void Despawn()
+		{
+			transform.DOScale(0, 0.2f).OnComplete(() => base.Despawn());
 		}
 
 		#endregion
 
 		#region Protected methods
 
-		protected abstract void ActivateItem(Player player);
+		protected abstract void RPCActivateItem(Player photonPlayer);
 
 		#endregion
 	}

@@ -4,6 +4,7 @@ using System.Linq;
 using DG.Tweening;
 using Runtime.GameSystem;
 using Runtime.InputSystem;
+using Runtime.Multiplayer;
 using UnityEngine;
 using UnityEngine.Playables;
 using UnityEngine.SceneManagement;
@@ -16,13 +17,18 @@ namespace Runtime.UI
 
 		[SerializeField,] private CanvasGroup _titleScreenCanvasGroup;
 		[SerializeField,] private CanvasGroup _blackfade;
-		[SerializeField,] private List<CharacterSelectionScreen> _characterSelectionScreens;
 		[SerializeField,] private AudioSource _titleScreenAudio;
 		[SerializeField,] private AudioSource _titleScreenClosedAudio;
 		[SerializeField,] private AudioSource _selectionScreenAudio;
 		[SerializeField,] private AudioSource _chooseYourFighterAudio;
 		[SerializeField,] private CanvasGroup _characterSelectionCanvasGroup;
-		[SerializeField] private PlayableDirector _titleScreenPlayableDirector;
+		[SerializeField,] private PlayableDirector _titleScreenPlayableDirector;
+
+		#endregion
+
+		#region Private Fields
+
+		private List<CharacterSelectionScreen> _characterSelectionScreens;
 
 		#endregion
 
@@ -30,6 +36,15 @@ namespace Runtime.UI
 
 		protected override MainMenuState InitialState => MainMenuState.TitleScreen;
 		public float CharacterScreenOpenedTime { get; private set; }
+
+		#endregion
+
+		#region Unity methods
+
+		private void Start()
+		{
+			_characterSelectionScreens = FindObjectsOfType<CharacterSelectionScreen>().ToList();
+		}
 
 		#endregion
 
@@ -44,12 +59,14 @@ namespace Runtime.UI
 					{
 						return MainMenuState.CharacterSelection;
 					}
+
 					break;
 				case MainMenuState.CharacterSelection:
 					if (_characterSelectionScreens.All(screen => screen.SelectionDone))
 					{
 						return MainMenuState.Starting;
 					}
+
 					break;
 				case MainMenuState.Starting:
 					break;
@@ -81,7 +98,7 @@ namespace Runtime.UI
 					                                                   }).SetDelay(1.5f);
 					break;
 				case MainMenuState.Starting:
-					_blackfade.DOFade(1, 0.5f).OnComplete(() => SceneManager.LoadScene(1)).SetDelay(1f);
+					_blackfade.DOFade(1, 0.5f).OnComplete(() => Lobby.Instance.Connect()).SetDelay(1f);
 					break;
 				default:
 					throw new ArgumentOutOfRangeException(nameof(newState), newState, null);

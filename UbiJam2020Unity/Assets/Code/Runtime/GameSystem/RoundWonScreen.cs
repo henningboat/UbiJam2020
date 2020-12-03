@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
+using Photon.Pun;
 using Runtime.PlayerSystem;
 using Runtime.Utils;
 using UnityEngine;
@@ -79,7 +80,7 @@ namespace Runtime.GameSystem
 				yield return new WaitForSeconds(5);
 			}
 
-			SceneManager.LoadScene(0);
+			GameManager.DisconnectAndLoadMenu();
 		}
 
 		#endregion
