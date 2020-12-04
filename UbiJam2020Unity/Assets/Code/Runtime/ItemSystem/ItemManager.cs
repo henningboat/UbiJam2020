@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Photon.Pun;
@@ -7,22 +6,44 @@ using Runtime.GameSystem;
 using Runtime.Utils;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Random = UnityEngine.Random;
 
 namespace Runtime.ItemSystem
 {
-	[RequireComponent(typeof(PhotonView))]
+	[RequireComponent(typeof(PhotonView)),]
 	public class ItemManager : Singleton<ItemManager>
 	{
+		#region Static Stuff
+
+		private static void SpawnItem(ItemBase itemPrefab)
+		{
+			Vector3 position = (Vector2.one * 5) + (Random.insideUnitCircle * 4.5f);
+
+			int count = 0;
+			while ((count < 500) && GameManager.Instance.Players.Any(player => Vector3.Distance(player.transform.position, position) < 2))
+			{
+				count++;
+				position = (Vector2.one * 5) + (Random.insideUnitCircle * 4.5f);
+			}
+
+			PhotonNetwork.Instantiate(itemPrefab.name, position, Quaternion.identity);
+		}
+
+		#endregion
+
 		#region Serialize Fields
 
 		[SerializeField,] private float _itemSpawnChance = 0.7f;
 		[SerializeField,] private float _doubleItemSpawnChance = 0.1f;
 		[SerializeField,] private float _itemSpawnDelay = 3f;
 		[SerializeField,] private float _itemSpawnDelayRandom = 1f;
-		[SerializeField] private int _startSpawningItemsAfterRounds = 3;
+		[SerializeField,] private int _startSpawningItemsAfterRounds = 3;
 		[SerializeField,] private List<ItemBase> _possibleItemPrefabs;
 		[SerializeField,] private ItemBase _debugItem;
+
+		#endregion
+
+		#region Private Fields
+
 		private PhotonView _photonView;
 
 		#endregion
@@ -46,10 +67,45 @@ namespace Runtime.ItemSystem
 			{
 				_itemSpawnChance = 1;
 			}
-			
-			if (GameManager.RoundCount > _startSpawningItemsAfterRounds || _debugItem != null)
+
+			if ((GameManager.RoundCount > _startSpawningItemsAfterRounds) || (_debugItem != null))
 			{
 				StartCoroutine(SpawnItemsCoroutine());
+			}
+		}
+
+		private void Update()
+		{
+			if (Debug.isDebugBuild || Application.isEditor)
+			{
+				if (_photonView.IsMine)
+				{
+					Keyboard keyboard = Keyboard.current;
+					if (keyboard.digit1Key.wasPressedThisFrame)
+					{
+						SpawnItem(_possibleItemPrefabs[0]);
+					}
+
+					if (keyboard.digit2Key.wasPressedThisFrame)
+					{
+						SpawnItem(_possibleItemPrefabs[1]);
+					}
+
+					if (keyboard.digit3Key.wasPressedThisFrame)
+					{
+						SpawnItem(_possibleItemPrefabs[2]);
+					}
+
+					if (keyboard.digit4Key.wasPressedThisFrame)
+					{
+						SpawnItem(_possibleItemPrefabs[3]);
+					}
+
+					if (keyboard.digit5Key.wasPressedThisFrame)
+					{
+						SpawnItem(_possibleItemPrefabs[4]);
+					}
+				}
 			}
 		}
 
@@ -90,16 +146,7 @@ namespace Runtime.ItemSystem
 				_possibleItemPrefabs.RemoveAt(randomItemIndex);
 			}
 
-			Vector3 position = (Vector2.one * 5) + (Random.insideUnitCircle * 4.5f);
-
-			int count = 0;
-			while (count < 500 && GameManager.Instance.Players.Any(player => Vector3.Distance(player.transform.position, position) < 2))
-			{
-				count++;
-				position = (Vector2.one * 5) + (Random.insideUnitCircle * 4.5f);
-			}
-
-			PhotonNetwork.Instantiate(itemPrefab.name, position, Quaternion.identity);
+			SpawnItem(itemPrefab);
 		}
 
 		#endregion
