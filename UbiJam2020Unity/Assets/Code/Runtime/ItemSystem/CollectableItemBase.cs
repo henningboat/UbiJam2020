@@ -30,7 +30,7 @@ namespace Runtime.ItemSystem
 					if (Vector2.Distance(player.transform.position, transform.position) < GameSettings.Instance.ItemCollectionDistance)
 					{
 						_collected = true;
-						_photonView.RPC("RPCActivateItem", RpcTarget.AllViaServer, PhotonNetwork.LocalPlayer);
+						_photonView.RPC("RPCActivateItem", RpcTarget.AllViaServer, player.PhotonView.Owner);
 						break;
 					}
 				}

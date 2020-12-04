@@ -1,10 +1,13 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Photon.Pun;
 using Runtime.GameSystem;
 using Runtime.Utils;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using Random = UnityEngine.Random;
 
 namespace Runtime.ItemSystem
 {

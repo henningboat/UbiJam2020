@@ -1,5 +1,6 @@
 ﻿using Photon.Pun;
 using Photon.Realtime;
+using UnityEngine;
 
 namespace Runtime.Multiplayer
 {
@@ -8,6 +9,15 @@ namespace Runtime.Multiplayer
 		#region Static Stuff
 
 		public static Lobby Instance { get; private set; }
+
+		private static void CheckRoomJoined()
+		{
+			if (PhotonNetwork.IsMasterClient && ((PhotonNetwork.CurrentRoom.PlayerCount == 2) || Application.isEditor))
+			{
+				PhotonNetwork.CurrentRoom.IsOpen = false;
+				PhotonNetwork.LoadLevel("MainScene");
+			}
+		}
 
 		#endregion
 
@@ -47,15 +57,6 @@ namespace Runtime.Multiplayer
 		{
 			base.OnPlayerEnteredRoom(newPlayer);
 			CheckRoomJoined();
-		}
-
-		private static void CheckRoomJoined()
-		{
-			if (PhotonNetwork.IsMasterClient && ((PhotonNetwork.CurrentRoom.PlayerCount == 2) || UnityEngine.Application.isEditor))
-			{
-				PhotonNetwork.CurrentRoom.IsOpen = false;
-				PhotonNetwork.LoadLevel("MainScene");
-			}
 		}
 
 		#endregion

@@ -314,7 +314,7 @@ MonoBehaviour:
   scaleLerpSpeed: 0.85
   timeCorrectionSpeed: 0.1
   snapTimeThreshold: 3
-  syncPosition: 1
+  syncPosition: 0
   syncRotation: 6
   syncScale: 7
   syncVelocity: 1

@@ -1,0 +1,112 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!687078895 &4343727234628468602
+SpriteAtlas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Atlas
+  m_EditorData:
+    serializedVersion: 2
+    textureSettings:
+      serializedVersion: 2
+      anisoLevel: 1
+      compressionQuality: 50
+      maxTextureSize: 2048
+      textureCompression: 0
+      filterMode: 1
+      generateMipMaps: 0
+      readable: 0
+      crunchedCompression: 0
+      sRGB: 1
+    platformSettings:
+    - serializedVersion: 3
+      m_BuildTarget: DefaultTexturePlatform
+      m_MaxTextureSize: 4096
+      m_ResizeAlgorithm: 0
+      m_TextureFormat: -1
+      m_TextureCompression: 1
+      m_CompressionQuality: 50
+      m_CrunchedCompression: 0
+      m_AllowsAlphaSplitting: 0
+      m_Overridden: 0
+      m_AndroidETC2FallbackOverride: 0
+      m_ForceMaximumCompressionQuality_BC6H_BC7: 0
+    packingSettings:
+      serializedVersion: 2
+      padding: 4
+      blockOffset: 1
+      allowAlphaSplitting: 0
+      enableRotation: 0
+      enableTightPacking: 0
+    variantMultiplier: 1
+    packables:
+    - {fileID: 102900000, guid: 6f014bdd41dc2c04790491f08b8aeaae, type: 3}
+    totalSpriteSurfaceArea: 34627238
+    bindAsDefault: 1
+    isAtlasV2: 0
+    cachedData: {fileID: 0}
+  m_MasterAtlas: {fileID: 0}
+  m_PackedSprites:
+  - {fileID: 21300000, guid: 011a7850c37c15b498a62f484ccab9e3, type: 3}
+  - {fileID: 21300000, guid: 3906d96062121a74cb0783fa156b5956, type: 3}
+  - {fileID: 21300000, guid: 81040af03dba5f44887865b084bf3a4d, type: 3}
+  - {fileID: 21300000, guid: 1ce98e31309d4d74bbcb1bdaff46e79b, type: 3}
+  - {fileID: 21300000, guid: d38fd1c15bbd36d4fb6638b7b8d464ae, type: 3}
+  - {fileID: 21300000, guid: a6834ad17b57a7740b70701ad329b5dd, type: 3}
+  - {fileID: 21300000, guid: 60b0d922124f24742b1d2e56f2ed55f2, type: 3}
+  - {fileID: 21300000, guid: b722a942b6237184eaa96f250e795926, type: 3}
+  - {fileID: 21300000, guid: 33cb80a2f3191614ebdfc1d4570f22b2, type: 3}
+  - {fileID: 21300000, guid: bbe8c3a2bb19ec44a99aeaf92d8237ad, type: 3}
+  - {fileID: 21300000, guid: 3e784eb251c9dfb4ab874203bd56efd9, type: 3}
+  - {fileID: 21300000, guid: 4bb76623d49a73245b07dc048518cdd6, type: 3}
+  - {fileID: 21300000, guid: 2eee04b425e6a034a8ec27d66cf89c94, type: 3}
+  - {fileID: 21300000, guid: 4422ffd4fda41dd4a930f270babf95d9, type: 3}
+  - {fileID: 21300000, guid: 39416576de144f7438704af7054d2282, type: 3}
+  - {fileID: 21300000, guid: 81273a87c41f45140a1975191919c403, type: 3}
+  - {fileID: 21300000, guid: 9942b4888463ef34b9ada97737849af8, type: 3}
+  - {fileID: 21300000, guid: e774af4ad92471a4fa7b88618d338c7c, type: 3}
+  - {fileID: 21300000, guid: 840f405b7c334c54e8c4a5cd69fb69ed, type: 3}
+  - {fileID: 21300000, guid: edbaa49c3f8edb24dbc82de285b42519, type: 3}
+  - {fileID: 21300000, guid: 293e8a1e04cdf9447abd4b6a09a8e26f, type: 3}
+  - {fileID: 21300000, guid: 9f7c796ec9d02db49b9e196d887175f9, type: 3}
+  - {fileID: 21300000, guid: 41f731be28c0c6340a1d817553cb05b0, type: 3}
+  - {fileID: 21300000, guid: f884ec5f056f4dd4ea8cfe12cf12eda1, type: 3}
+  - {fileID: 21300000, guid: 4669fc5f6264c02489897f855e104be4, type: 3}
+  - {fileID: 21300000, guid: 59f96d5f8f9d4d242aa5986feebb5aab, type: 3}
+  - {fileID: 21300000, guid: fe261c9fa24e4bd41801d4460bc46f4d, type: 3}
+  - {fileID: 21300000, guid: 38b2fdafb232c894b91e6b154118d3d8, type: 3}
+  - {fileID: 21300000, guid: 7c0586ffd71cd264eab9868b16527d8c, type: 3}
+  m_PackedSpriteNamesToIndex:
+  - CharacterCardYellow
+  - PlayerImagePink
+  - VictoryOrangeCharacter
+  - CharacterCardBlue
+  - ArrowLeft
+  - fight
+  - VictoryYellowBackground
+  - VictoryBlueBackground
+  - VictoryBlueSpark
+  - VictoryOrangeSpark
+  - VictoryBlueCharacter
+  - VictoryPinkSpark
+  - Player2
+  - VictoryYellowCharacter
+  - PlayerleafScore
+  - ArrowRight
+  - VictoryYellowSpark
+  - Player1
+  - Header
+  - CharacterCardOrange
+  - PlayerImageBlue
+  - CharacterCardPink
+  - Playerleaf
+  - PlayerImageOrange
+  - VictoryOrangeBackground
+  - VictoryPinkBackground
+  - VictoryPinkCharacter
+  - get_ready
+  - PlayerImageYellow
+  m_Tag: Atlas
+  m_IsVariant: 0

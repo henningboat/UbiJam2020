@@ -48,7 +48,7 @@ MonoBehaviour:
   _doubleItemSpawnChance: 0.1
   _itemSpawnDelay: 3
   _itemSpawnDelayRandom: 2
-  _startSpawningItemsAfterRounds: 2
+  _startSpawningItemsAfterRounds: 0
   _possibleItemPrefabs:
   - {fileID: 144271185655640275, guid: df424f379189fdd40b433333380244df, type: 3}
   - {fileID: 8242962883321740897, guid: f89a7353882dc054ba0e3f9536f863b5, type: 3}

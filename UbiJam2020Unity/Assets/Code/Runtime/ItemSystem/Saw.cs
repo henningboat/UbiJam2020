@@ -31,7 +31,7 @@ namespace Runtime.ItemSystem
 
 		private IEnumerator Start()
 		{
-			transform.position = Vector3.right * 1000;
+			transform.position = Vector3.forward * 10000;
 
 			if (_photonView.IsMine)
 			{
