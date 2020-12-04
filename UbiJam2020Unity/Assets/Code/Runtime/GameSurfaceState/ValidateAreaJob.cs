@@ -4,7 +4,7 @@ using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 
-namespace Runtime.GameSurface
+namespace Runtime.GameSurfaceState
 {
     [BurstCompile]
     public struct ValidateAreaJob : IJob
@@ -22,13 +22,11 @@ namespace Runtime.GameSurface
             var ColorClear = new Color32(0, 0, 0, 0);
             var ColorSolid = new Color32(255, 255, 255, 255);
 
-            NativeArray<bool> countedParts = new NativeArray<bool>(Surface.Length,Allocator.Temp);
-
             int groupID = 0;
-            int biggestGroupID=0;
-            int biggestGroupCount=0;
+            int biggestGroupID = 0;
+            int biggestGroupCount = 0;
             Vector2Int biggestGroupStartTile = Vector2Int.zero;
-            
+
             for (var x = 0; x < Resolution; x++)
             for (var y = 0; y < Resolution; y++)
             {
@@ -38,7 +36,7 @@ namespace Runtime.GameSurface
                     int numberOfPiecesInGroup = 0;
                     PositionsToValidate.Clear();
                     PositionsToValidate.Enqueue(new Vector2Int(x, y));
-                    while (PositionsToValidate.Count > 0) CountAllConnectedIntactNodes(PositionsToValidate.Dequeue(),ref numberOfPiecesInGroup);
+                    while (PositionsToValidate.Count > 0) CountAllConnectedIntactNodes(PositionsToValidate.Dequeue(), ref numberOfPiecesInGroup);
 
                     if (numberOfPiecesInGroup > biggestGroupCount)
                     {
@@ -49,22 +47,22 @@ namespace Runtime.GameSurface
             }
 
             Timestamp++;
-            
+
             PositionsToValidate.Clear();
             PositionsToValidate.Enqueue(biggestGroupStartTile);
             while (PositionsToValidate.Count > 0) ValidateAllConnectedSurfaces(PositionsToValidate.Dequeue());
 
-            
+
             bool anyNewDestroyedNodes = false;
-            
+
             for (var x = 0; x < Resolution; x++)
             for (var y = 0; y < Resolution; y++)
             {
                 var node = GetSurfacePiece(x, y);
-                if (node.IsInvalid(Timestamp) && node.State!=SurfaceState.Destroyed)
+                if (node.IsInvalid(Timestamp) && node.State != SurfaceState.Destroyed)
                 {
                     anyNewDestroyedNodes = true;
-                        
+
                     SetNodeAtPosition(x, y, node.DestroyPiece());
                     GameSurfaceTex[x + y * Resolution] = ColorClear;
                 }

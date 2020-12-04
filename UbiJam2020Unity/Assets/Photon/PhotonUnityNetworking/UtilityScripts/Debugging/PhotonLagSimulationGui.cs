@@ -40,6 +40,7 @@ namespace Photon.Pun.UtilityScripts
 
         public void Start()
         {
+            this.Visible = Debug.isDebugBuild;
             this.Peer = PhotonNetwork.NetworkingClient.LoadBalancingPeer;
         }
 

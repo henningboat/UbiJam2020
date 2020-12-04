@@ -1,9 +1,8 @@
-﻿using System;
-using Runtime.GameSystem;
+﻿using Runtime.GameSystem;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace Runtime.GameSurface
+namespace Runtime.GameSurfaceState
 {
 	public class FallingPiece : MonoBehaviour
 	{

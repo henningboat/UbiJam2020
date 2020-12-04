@@ -1,4 +1,4 @@
-﻿namespace Runtime.GameSurface
+﻿namespace Runtime.GameSurfaceState
 {
     public enum SurfaceState : byte
     {

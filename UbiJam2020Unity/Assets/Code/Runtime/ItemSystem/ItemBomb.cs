@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using DG.Tweening;
+using Runtime.GameSurfaceState;
 using UnityEngine;
 
 namespace Runtime.ItemSystem
@@ -35,7 +36,7 @@ namespace Runtime.ItemSystem
 
 			if (IsMine)
 			{
-				GameSurface.GameSurface.Instance.DestroyCircle(transform.position, _radius);
+				GameSurface.Instance.DestroyCircle(transform.position, _radius);
 			}
 
 			yield return new WaitForFixedUpdate();

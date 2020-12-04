@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Linq;
 using Photon.Pun;
-using Runtime.GameSurface;
+using Runtime.GameSurfaceState;
 using Runtime.GameSystem;
 using Runtime.InputSystem;
 using UnityEngine;
@@ -14,6 +14,12 @@ namespace Runtime.PlayerSystem
 		#region Static Stuff
 
 		private const float CutDuration = 0.1f;
+		private const int PixelTollelranceWhenFalling = 4;
+
+		public static Player GetFromPhotonPlayer(Photon.Realtime.Player photonPlayer)
+		{
+			return GameManager.Instance.Players.FirstOrDefault(player => player.PhotonView.Owner.ActorNumber == photonPlayer.ActorNumber);
+		}
 
 		#endregion
 
@@ -126,7 +132,7 @@ namespace Runtime.PlayerSystem
 							{
 								Vector3 cutStartPosition = _cutStartPosition.Value;
 								Vector3 transformPosition = transform.position;
-								 GameSurface.GameSurface.Instance.Cut(cutStartPosition, transformPosition);
+								GameSurface.Instance.Cut(cutStartPosition, transformPosition);
 								_cutStartPosition = null;
 							}
 						}
@@ -195,11 +201,11 @@ namespace Runtime.PlayerSystem
 			switch (State)
 			{
 				case PlayerState.Alive:
-					if (GameSurface.GameSurface.Instance.GetNodeAtPosition(transform.position).State == SurfaceState.Destroyed)
+					if (GameSurface.Instance.IsWalkableAtWorldPosition(transform.position) == false)
 					{
 						if (HasPatch)
 						{
-							GameSurface.GameSurface.Instance.SpawnPatch(transform.position);
+							GameSurface.Instance.SpawnPatch(transform.position);
 							HasPatch = false;
 						}
 						else
@@ -237,12 +243,31 @@ namespace Runtime.PlayerSystem
 
 		private bool TrySafePlayerFromFalling()
 		{
-			if (GameSurface.GameSurface.Instance.GetNodeAtGridPosition(_lastNodePosition).State != SurfaceState.Destroyed)
+			Vector2? closestSafePosition=null;
+			float closestSafePositionDistance=float.MaxValue;
+				
+			for (int x = -PixelTollelranceWhenFalling; x < PixelTollelranceWhenFalling + 1; x++)
+			for (int y = -PixelTollelranceWhenFalling; y < PixelTollelranceWhenFalling + 1; y++)
 			{
-				transform.position = GameSurface.GameSurface.Instance.GridPositionToWorldPosition(_lastNodePosition);
-				return true;
+				Vector2Int potentialSafePosition = _lastNodePosition + new Vector2Int(x, y);
+				if (GameSurface.Instance.IsWalkableAtGridPosition(potentialSafePosition))
+				{
+					Vector2 safePositionWS= GameSurface.Instance.GridPositionToWorldPosition(potentialSafePosition);
+					float distance = Vector2.Distance(transform.position, safePositionWS);
+					if (distance < closestSafePositionDistance)
+					{
+						closestSafePosition = safePositionWS;
+						closestSafePositionDistance = distance;
+					}
+				}
 			}
 
+			if (closestSafePosition.HasValue)
+			{
+				transform.position = closestSafePosition.Value;
+				return true;
+			}
+			
 			return false;
 		}
 
@@ -250,7 +275,7 @@ namespace Runtime.PlayerSystem
 		{
 			Vector2 direction = positionDelta.normalized;
 			float distanceToTravel = positionDelta.magnitude;
-			float stepSize = GameSurface.GameSurface.Instance.WorldSpaceGridNodeSize;
+			float stepSize = GameSurface.Instance.WorldSpaceGridNodeSize;
 
 			bool? invertMinor = null;
 
@@ -311,31 +336,28 @@ namespace Runtime.PlayerSystem
 				return false;
 			}
 
-			SurfacePiece node = GameSurface.GameSurface.Instance.GetNodeAtPosition((Vector2) transform.position + offset);
-			if (node.State == SurfaceState.Destroyed)
+			bool walkable = GameSurface.Instance.IsWalkableAtWorldPosition(transform.position + (Vector3) offset);
+			if (!walkable)
 			{
 				return false;
 			}
 
 			transform.position += (Vector3) offset;
 
-			if (node.Position != _currentNodePosition)
+			Vector2Int newPosition = GameSurface.WorldSpaceToGrid(transform.position);
+			if (newPosition != _currentNodePosition)
 			{
 				_lastNodePosition = _currentNodePosition;
 			}
-			_currentNodePosition = node.Position;
-			
+
+			_currentNodePosition = newPosition;
+
 			didMove = true;
 			distanceToTravel -= offset.magnitude;
 			return true;
 		}
 
 		#endregion
-
-		public static Player GetFromPhotonPlayer(Photon.Realtime.Player photonPlayer)
-		{
-			return GameManager.Instance.Players.FirstOrDefault(player => player.PhotonView.Owner.ActorNumber == photonPlayer.ActorNumber);
-		}
 	}
 
 	public enum PlayerState

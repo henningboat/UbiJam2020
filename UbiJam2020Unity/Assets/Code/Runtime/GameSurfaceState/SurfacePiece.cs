@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Runtime.GameSurface
+namespace Runtime.GameSurfaceState
 {
 	public struct SurfacePiece
 	{

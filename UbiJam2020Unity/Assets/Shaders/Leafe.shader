@@ -4,6 +4,7 @@
     {
         _MainTex ("Texture", 2D) = "white" {}
         _Mask ("_Mask", 2D) = "white" {}
+        _LocalMask ("LocalMask", 2D) = "white" {}
         _PatchTex ("_Mask", 2D) = "white" {}
         _FogColor ("_FogColor", Color) = (0,0,0,0)
         [Toggle]_ShowMap ("ShowMask", Float) = 0
@@ -38,6 +39,7 @@
             sampler2D _MainTex;
             sampler2D _Mask;
             sampler2D _PatchTex;
+            sampler2D _LocalMask;
             float4 _MainTex_ST;
             float4 _Mask_ST;
             float4 _FogColor;
@@ -58,6 +60,7 @@
             {
                 fixed4 col = tex2D(_MainTex, i.uv);
                 fixed4 maskCol = tex2D(_Mask, i.uv);
+                fixed4 localMaskCol = tex2D(_LocalMask, i.uv);
                 
                 
                 float2 patchUV = ((_PatchTransformation.xy-i.positionWS)/(_PatchTransformation.z*2))+0.5;
@@ -75,10 +78,15 @@
                 
                 clip(maskCol.a*col.a-0.5);
                 
-                if(_ShowMap>0)
-                    return maskCol;
-                else
-                    return col;
+                if(_ShowMap>0){
+                    if(localMaskCol.a<0.50&&maskCol.a>0.5){
+                        return float4(1,0,0,1);
+                    }else{
+                        return maskCol.a;
+                    }
+                }else{
+                    return float4(col);
+                }
             }
             ENDCG
         }

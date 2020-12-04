@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using DG.Tweening;
+using Runtime.GameSurfaceState;
 using UnityEngine;
 
 namespace Runtime.ItemSystem
@@ -58,7 +59,7 @@ namespace Runtime.ItemSystem
 				{
 					if (Time.time - _cutStartedTime > _cutDuration)
 					{
-						GameSurface.GameSurface.Instance.Cut(_cutStartedPosition, transform.position);
+						GameSurface.Instance.Cut(_cutStartedPosition, transform.position);
 
 						_cutStartedPosition = transform.position;
 						_cutStartedTime = Time.time;
