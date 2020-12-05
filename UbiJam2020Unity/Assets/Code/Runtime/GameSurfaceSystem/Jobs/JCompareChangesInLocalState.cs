@@ -10,7 +10,7 @@ namespace Runtime.GameSurfaceSystem.Jobs
 		#region Public Fields
 
 		public NativeArray<SurfaceState> LastFrameLocalSurface;
-		public NativeArray<SurfacePiece> LocalStateSurface;
+		public NativeArray<SurfaceState> LocalStateSurface;
 		public NativeArray<int> RpcNumberPerNode;
 		public int SentRPCNumber;
 
@@ -20,7 +20,7 @@ namespace Runtime.GameSurfaceSystem.Jobs
 
 		public void Execute(int i)
 		{
-			if (LocalStateSurface[i].State != LastFrameLocalSurface[i])
+			if (LocalStateSurface[i] != LastFrameLocalSurface[i])
 			{
 				RpcNumberPerNode[i] = SentRPCNumber;
 			}

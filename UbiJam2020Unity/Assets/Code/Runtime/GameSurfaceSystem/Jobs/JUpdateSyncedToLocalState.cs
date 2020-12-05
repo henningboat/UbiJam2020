@@ -9,10 +9,10 @@ namespace Runtime.GameSurfaceSystem.Jobs
 	{
 		#region Public Fields
 
-		public NativeArray<SurfacePiece> LocalStateSurface;
+		public NativeArray<SurfaceState> LocalStateSurface;
 		public int ReceivedRpcNumber;
 		public NativeArray<int> RpcNumberPerNode;
-		public NativeArray<SurfacePiece> SyncedStateSurface;
+		public NativeArray<SurfaceState> SyncedStateSurface;
 
 		#endregion
 
@@ -23,8 +23,8 @@ namespace Runtime.GameSurfaceSystem.Jobs
 			int rpcNumberOfNode = RpcNumberPerNode[i];
 			if (ReceivedRpcNumber >= rpcNumberOfNode)
 			{
-				SurfacePiece surfacePiece = LocalStateSurface[i];
-				surfacePiece.State = SyncedStateSurface[i].State;
+				SurfaceState surfacePiece = LocalStateSurface[i];
+				surfacePiece = SyncedStateSurface[i];
 				LocalStateSurface[i] = surfacePiece;
 			}
 		}

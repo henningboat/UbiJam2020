@@ -10,20 +10,21 @@ namespace Runtime.GameSurfaceSystem
 	{
 		#region Public Fields
 
-		public NativeArray<SurfacePiece> Surface;
+		public NativeArray<SurfaceState> Surface;
 
 		#endregion
 
 		#region Private Fields
 
 		private readonly bool _visualize;
-		private NativeArray<int2> _connectedPiecesKernel;
+		private NativeArray<int> _connectedPiecesKernel;
 		private int _resolution;
 		private float _size;
 		private JobHandle _currentJobHandle;
-		private NativeQueue<int2> _nativeQueue;
-		private NativeArray<SurfacePiece> _surfaceBackup;
+		private NativeQueue<int> _nativeQueue;
+		private NativeArray<SurfaceState> _surfaceBackup;
 		private NativeArray<bool> _anyNewSurfaceDestroyed;
+		private NativeArray<byte> _validity;
 
 		#endregion
 
@@ -41,19 +42,18 @@ namespace Runtime.GameSurfaceSystem
 			_size = size;
 			_visualize = visualize;
 			_resolution = resolution;
-			_connectedPiecesKernel = new NativeArray<int2>(4, Allocator.Persistent);
-			_connectedPiecesKernel[0] = new int2(0, +1);
-			_connectedPiecesKernel[1] = new int2(0, -1);
-			_connectedPiecesKernel[2] = new int2(+1, 0);
-			_connectedPiecesKernel[3] = new int2(-1, 0);
+			
+			_connectedPiecesKernel = new NativeArray<int>(4, Allocator.Persistent);
+			_connectedPiecesKernel[0] = GameSurface.Resolution;
+			_connectedPiecesKernel[1] = -GameSurface.Resolution;
+			_connectedPiecesKernel[2] = 1;
+			_connectedPiecesKernel[3] = -1;
 
-			Surface = new NativeArray<SurfacePiece>(_resolution * _resolution, Allocator.Persistent);
+			Surface = new NativeArray<SurfaceState>(GameSurface.SurfacePieceCount, Allocator.Persistent);
 
 			for (int x = 0; x < _resolution; x++)
 			for (int y = 0; y < _resolution; y++)
 			{
-				Vector2Int position = new Vector2Int(x, y);
-
 				Vector2 uv = GameSurface.GridPositionToID(new Vector2Int(x, y));
 				float gamefieldTexValue = gameSurfaceTexture.GetPixelBilinear(uv.x, uv.y).a;
 
@@ -67,7 +67,7 @@ namespace Runtime.GameSurfaceSystem
 					surfaceState = SurfaceState.Destroyed;
 				}
 
-				Surface[x + (y * _resolution)] = new SurfacePiece(position, surfaceState);
+				Surface[x + (y * _resolution)] = surfaceState;
 			}
 
 			GameSurfaceTex = new Texture2D(_resolution, _resolution, TextureFormat.ARGB32, false);
@@ -82,26 +82,41 @@ namespace Runtime.GameSurfaceSystem
 			CurrentTimestamp += 2;
 			_anyNewSurfaceDestroyed = new NativeArray<bool>(1, Allocator.TempJob);
 
-			_surfaceBackup = new NativeArray<SurfacePiece>(Surface, Allocator.Temp);
+			_surfaceBackup = new NativeArray<SurfaceState>(Surface, Allocator.Temp);
 
-			_nativeQueue = new NativeQueue<int2>(Allocator.TempJob);
-			NativeArray<Color32> data = GameSurfaceTex.GetRawTextureData<Color32>();
+			_nativeQueue = new NativeQueue<int>(Allocator.TempJob);
+
+			_validity = new NativeArray<byte>(GameSurface.SurfacePieceCount, Allocator.TempJob);
 			JValidateAreaJob jValidateAreaJob = new JValidateAreaJob
 			                                    {
 				                                    Surface = Surface,
 				                                    ConnectedPiecesKernel = _connectedPiecesKernel,
 				                                    PositionsToValidate = _nativeQueue,
-				                                    Timestamp = CurrentTimestamp,
-				                                    GameSurfaceTex = data.Reinterpret<uint>(),
 				                                    DidCutNewSurface = _anyNewSurfaceDestroyed,
+				                                    Validity = _validity,
 			                                    };
-			return jValidateAreaJob.Schedule(dependency);
+
+			JobHandle jobHandle = jValidateAreaJob.Schedule(dependency);
+
+			if (_visualize)
+			{
+				NativeArray<Color32> data = GameSurfaceTex.GetRawTextureData<Color32>();
+				JGenerateMapTexture generateMapTextureJob = new JGenerateMapTexture
+				                                            {
+					                                            Surface = Surface,
+					                                            GameSurfaceTex = data.Reinterpret<uint>(),
+				                                            };
+				jobHandle = generateMapTextureJob.Schedule(GameSurface.SurfacePieceCount, GameSurface.ParallelJobBatchCount, jobHandle);
+			}
+
+			return jobHandle;
 		}
 
 		public void FinishSimulation()
 		{
 			_currentJobHandle.Complete();
 			_nativeQueue.Dispose();
+			_validity.Dispose();
 			GameSurfaceTex.Apply();
 			if (_anyNewSurfaceDestroyed[0] && _visualize)
 			{
@@ -111,18 +126,18 @@ namespace Runtime.GameSurfaceSystem
 			_anyNewSurfaceDestroyed.Dispose();
 		}
 
-		public void SpawnDestroyedPart(NativeArray<SurfacePiece> surface, NativeArray<SurfacePiece> surfaceBackup)
+		public void SpawnDestroyedPart(NativeArray<SurfaceState> surface, NativeArray<SurfaceState> surfaceBackup)
 		{
 			Texture2D maskTexture = new Texture2D(_resolution, _resolution, TextureFormat.ARGB32, false);
-			Color32[] colors = new Color32[_resolution * _resolution];
+			Color32[] colors = new Color32[GameSurface.SurfacePieceCount];
 			for (int x = 0; x < _resolution; x++)
 			{
 				for (int y = 0; y < _resolution; y++)
 				{
 					Color32 color = new Color32(0, 0, 0, 0);
-					SurfacePiece nodeNow = surface[x + (y * _resolution)];
-					SurfacePiece nodeBefore = surfaceBackup[x + (y * _resolution)];
-					if ((nodeNow.State == SurfaceState.Destroyed) && (nodeBefore.State != SurfaceState.Destroyed))
+					SurfaceState nodeNow = surface[x + (y * _resolution)];
+					SurfaceState nodeBefore = surfaceBackup[x + (y * _resolution)];
+					if ((nodeNow == SurfaceState.Destroyed) && (nodeBefore != SurfaceState.Destroyed))
 					{
 						color = new Color32(255, 255, 255, 255);
 					}
@@ -147,9 +162,7 @@ namespace Runtime.GameSurfaceSystem
 					if (Vector2.Distance(explosionPosition, positonWS) < radius)
 					{
 						int indexAtPosition = GameSurface.GetIndexAtGridPosition(new Vector2Int(x, y));
-						SurfacePiece surfacePiece = Surface[indexAtPosition];
-						surfacePiece.State = overwriteState;
-						Surface[indexAtPosition] = surfacePiece;
+						Surface[indexAtPosition] = overwriteState;
 					}
 				}
 			}
@@ -212,10 +225,7 @@ namespace Runtime.GameSurfaceSystem
 
 		public void CopySurfaceTo(NativeArray<SurfaceState> combinedSurface)
 		{
-			for (int i = 0; i < Surface.Length; i++)
-			{
-				combinedSurface[i] = Surface[i].State;
-			}
+			Surface.CopyTo(combinedSurface);
 		}
 
 		#endregion
@@ -227,7 +237,11 @@ namespace Runtime.GameSurfaceSystem
 			if (GameSurface.InsideSurface(positionOnGrid))
 			{
 				int indexAtPosition = GameSurface.GetIndexAtGridPosition(positionOnGrid);
-				Surface[indexAtPosition] = Surface[indexAtPosition].Cut();
+				SurfaceState surfaceState = Surface[indexAtPosition];
+				if (surfaceState == SurfaceState.Intact)
+				{
+					Surface[indexAtPosition] = SurfaceState.Border;
+				}
 			}
 		}
 

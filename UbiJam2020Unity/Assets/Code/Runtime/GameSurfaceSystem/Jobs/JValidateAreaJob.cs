@@ -1,5 +1,4 @@
-﻿using System;
-using Unity.Burst;
+﻿using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -12,49 +11,52 @@ namespace Runtime.GameSurfaceSystem.Jobs
 		#region Static Stuff
 
 		public const int Resolution = GameSurface.Resolution;
+		public const int SurfacePieceCount = GameSurface.SurfacePieceCount;
 
 		#endregion
 
 		#region Public Fields
 
-		[ReadOnly,] public NativeArray<int2> ConnectedPiecesKernel;
+		[ReadOnly,] public NativeArray<int> ConnectedPiecesKernel;
 		public NativeArray<bool> DidCutNewSurface;
-		public NativeArray<uint> GameSurfaceTex;
-		public NativeQueue<int2> PositionsToValidate;
-		public NativeArray<SurfacePiece> Surface;
-		public int Timestamp;
+		public NativeQueue<int> PositionsToValidate;
+		public NativeArray<SurfaceState> Surface;
+		private byte Timestamp;
+		public NativeArray<byte> Validity;
 
 		#endregion
 
 		#region Public methods
 
-		public bool InsideSurface(int2 position)
+		public bool InsideSurface(int position)
 		{
-			return (position.x >= 0) && (position.x < Resolution) &&
-			       (position.y >= 0) && (position.y < Resolution);
+			return (position >= 0) && (position < SurfacePieceCount);
 		}
 
 		#endregion
 
 		#region Private methods
 
-		private void ValidateAllConnectedSurfaces(int2 basePosition)
+		private void ValidateAllConnectedSurfaces(int indexAtPosition)
 		{
-			SurfacePiece node = GetSurfacePiece(basePosition.x, basePosition.y);
-			if (node.IsInvalid(Timestamp))
-			{
-				SetNodeAtPosition(basePosition.x, basePosition.y, node.Validate(Timestamp));
+			SurfaceState nodeState = Surface[indexAtPosition];
+			int nodeValidity = Validity[indexAtPosition];
 
-				if (node.State != SurfaceState.Border)
+			if (nodeValidity < Timestamp)
+			{
+				Validity[indexAtPosition] = Timestamp;
+
+				if (nodeState != SurfaceState.Border)
 				{
 					for (int i = 0; i < 4; i++)
 					{
-						int2 offset = ConnectedPiecesKernel[i];
-						int2 connectionPosition = basePosition + offset;
+						int offsetInArray =  ConnectedPiecesKernel[i];
+						int connectionPosition = indexAtPosition + offsetInArray;
 						if (InsideSurface(connectionPosition))
 						{
-							SurfacePiece connection = GetSurfacePiece(connectionPosition.x, connectionPosition.y);
-							if ((connection.State != SurfaceState.Destroyed) && connection.IsInvalid(Timestamp))
+							SurfaceState connectedNodeState = Surface[connectionPosition];
+							int connectedNodeStateValidity = Validity[connectionPosition];
+							if ((connectedNodeState != SurfaceState.Destroyed) && (connectedNodeStateValidity < Timestamp))
 							{
 								PositionsToValidate.Enqueue(connectionPosition);
 							}
@@ -64,24 +66,26 @@ namespace Runtime.GameSurfaceSystem.Jobs
 			}
 		}
 
-		private void CountAllConnectedIntactNodes(int2 basePosition, ref int numberOfPiecesInGroup)
+		private void CountAllConnectedIntactNodes(int indexAtPosition, ref int numberOfPiecesInGroup)
 		{
-			SurfacePiece node = GetSurfacePiece(basePosition.x, basePosition.y);
-			if (node.IsInvalid(Timestamp))
+			SurfaceState nodeState = Surface[indexAtPosition];
+			int nodeValidity = Validity[indexAtPosition];
+			if (nodeValidity < Timestamp)
 			{
-				SetNodeAtPosition(basePosition.x, basePosition.y, node.Validate(Timestamp));
+				Validity[indexAtPosition] = Timestamp;
 				numberOfPiecesInGroup++;
 
-				if (node.State != SurfaceState.Border)
+				if (nodeState != SurfaceState.Border)
 				{
 					for (int i = 0; i < 4; i++)
 					{
-						int2 offset = ConnectedPiecesKernel[i];
-						int2 connectionPosition = basePosition + offset;
+						int offsetInArray =  ConnectedPiecesKernel[i];
+						int connectionPosition = indexAtPosition + offsetInArray;
 						if (InsideSurface(connectionPosition))
 						{
-							SurfacePiece connection = GetSurfacePiece(connectionPosition.x, connectionPosition.y);
-							if ((connection.State == SurfaceState.Intact) && connection.IsInvalid(Timestamp))
+							SurfaceState connectedNodeState = Surface[connectionPosition];
+							int connectedNodeStateValidity = Validity[connectionPosition];
+							if ((connectedNodeState == SurfaceState.Intact) && (connectedNodeStateValidity < Timestamp))
 							{
 								PositionsToValidate.Enqueue(connectionPosition);
 							}
@@ -91,14 +95,9 @@ namespace Runtime.GameSurfaceSystem.Jobs
 			}
 		}
 
-		private void SetNodeAtPosition(int positionX, int positionY, SurfacePiece surfacePiece)
+		private int GetIndexAtPosition(int x, int y)
 		{
-			Surface[positionX + (positionY * Resolution)] = surfacePiece;
-		}
-
-		private SurfacePiece GetSurfacePiece(int x, int y)
-		{
-			return Surface[x + (y * Resolution)];
+			return x + (y * Resolution);
 		}
 
 		#endregion
@@ -107,32 +106,31 @@ namespace Runtime.GameSurfaceSystem.Jobs
 
 		public void Execute()
 		{
-			const uint ColorClear = 0;
-			const uint ColorSolid = uint.MaxValue;
-
+			Timestamp = 1;
 			int groupID = 0;
 			int biggestGroupID = 0;
 			int biggestGroupCount = 0;
-			int2 biggestGroupStartTile = 0;
+			int biggestGroupStartTile = 0;
 
 			for (int x = 0; x < Resolution; x++)
 			for (int y = 0; y < Resolution; y++)
 			{
-				SurfacePiece surfacePiece = GetSurfacePiece(x, y);
-				if ((surfacePiece.State == SurfaceState.Intact) && surfacePiece.IsInvalid(Timestamp))
+				int indexOfNode = GetIndexAtPosition(x, y);
+				if ((Surface[indexOfNode] == SurfaceState.Intact) && (Validity[indexOfNode] < Timestamp))
 				{
 					int numberOfPiecesInGroup = 0;
 					PositionsToValidate.Clear();
-					PositionsToValidate.Enqueue(new int2(x, y));
+					PositionsToValidate.Enqueue(indexOfNode);
 					while (PositionsToValidate.Count > 0)
 					{
-						CountAllConnectedIntactNodes(PositionsToValidate.Dequeue(), ref numberOfPiecesInGroup);
+						int positionToValidate = PositionsToValidate.Dequeue();
+						CountAllConnectedIntactNodes(positionToValidate, ref numberOfPiecesInGroup);
 					}
 
 					if (numberOfPiecesInGroup > biggestGroupCount)
 					{
 						biggestGroupCount = numberOfPiecesInGroup;
-						biggestGroupStartTile = new int2(x, y);
+						biggestGroupStartTile = indexOfNode;
 					}
 				}
 			}
@@ -143,37 +141,21 @@ namespace Runtime.GameSurfaceSystem.Jobs
 			PositionsToValidate.Enqueue(biggestGroupStartTile);
 			while (PositionsToValidate.Count > 0)
 			{
-				ValidateAllConnectedSurfaces(PositionsToValidate.Dequeue());
+				int positionToValidate = PositionsToValidate.Dequeue();
+				ValidateAllConnectedSurfaces(positionToValidate
+				);
 			}
 
 			bool anyNewDestroyedNodes = false;
 
-			for (int x = 0; x < Resolution; x++)
-			for (int y = 0; y < Resolution; y++)
+			for (int i = 0; i < SurfacePieceCount; i++)
 			{
-				SurfacePiece node = GetSurfacePiece(x, y);
-				if (node.IsInvalid(Timestamp) && (node.State != SurfaceState.Destroyed))
+				SurfaceState nodeState = Surface[i];
+				int validity = Validity[i];
+				if ((validity < Timestamp) && (nodeState != SurfaceState.Destroyed))
 				{
 					anyNewDestroyedNodes = true;
-
-					SetNodeAtPosition(x, y, node.DestroyPiece());
-					GameSurfaceTex[x + (y * Resolution)] = ColorClear;
-				}
-				else
-				{
-					switch (node.State)
-					{
-						case SurfaceState.Intact:
-						case SurfaceState.Permanent:
-							GameSurfaceTex[x + (y * Resolution)] = ColorSolid;
-							break;
-						case SurfaceState.Border:
-						case SurfaceState.Destroyed:
-							GameSurfaceTex[x + (y * Resolution)] = ColorClear;
-							break;
-						default:
-							throw new ArgumentOutOfRangeException();
-					}
+					Surface[i] = SurfaceState.Destroyed;
 				}
 			}
 

@@ -14,6 +14,7 @@ namespace Runtime.GameSurfaceSystem
 		private const RpcTarget RPCSyncMethod = RpcTarget.AllViaServer;
 		public const int Resolution = 256;
 		public const int SurfacePieceCount = Resolution * Resolution;
+		public const int ParallelJobBatchCount = SurfacePieceCount / 16;
 
 		public static Vector2 GridPositionToID(Vector2Int position)
 		{
@@ -96,11 +97,11 @@ namespace Runtime.GameSurfaceSystem
 
 		private void LateUpdate()
 		{
-			JobHandle localStateHandle =_localState.Simulate();
+			JobHandle localStateHandle = _localState.Simulate();
 			JobHandle syncedStateHandle = _syncronizedState.Simulate();
 
-			var combinedJobHandle = JobHandle.CombineDependencies(localStateHandle, syncedStateHandle);
-			
+			JobHandle combinedJobHandle = JobHandle.CombineDependencies(localStateHandle, syncedStateHandle);
+
 			// for (int i = 0; i < _rpcNumberPerNode.Length; i++)
 			// {
 			// 	if (_localState.Surface[i].State != _localStateBackup[i])
@@ -125,28 +126,27 @@ namespace Runtime.GameSurfaceSystem
 			// }
 
 			JCompareChangesInLocalState jCompare = new JCompareChangesInLocalState
-			                                           {
-				                                           SentRPCNumber = _sentRPCNumber,
-				                                           RpcNumberPerNode = _rpcNumberPerNode,
-				                                           LocalStateSurface = _localState.Surface,
-				                                           LastFrameLocalSurface = _localStateBackup,
-			                                           };
+			                                       {
+				                                       SentRPCNumber = _sentRPCNumber,
+				                                       RpcNumberPerNode = _rpcNumberPerNode,
+				                                       LocalStateSurface = _localState.Surface,
+				                                       LastFrameLocalSurface = _localStateBackup,
+			                                       };
 			JUpdateSyncedToLocalState jUpdateJob = new JUpdateSyncedToLocalState
-			                                     {
-				                                     ReceivedRpcNumber = _receivedRpcNumber,
-				                                     LocalStateSurface = _localState.Surface,
-				                                     SyncedStateSurface = _syncronizedState.Surface,
-				                                     RpcNumberPerNode = _rpcNumberPerNode,
-			                                     };
+			                                       {
+				                                       ReceivedRpcNumber = _receivedRpcNumber,
+				                                       LocalStateSurface = _localState.Surface,
+				                                       SyncedStateSurface = _syncronizedState.Surface,
+				                                       RpcNumberPerNode = _rpcNumberPerNode,
+			                                       };
 
-			combinedJobHandle = jCompare.Schedule(SurfacePieceCount, Resolution, combinedJobHandle);
+			combinedJobHandle = jCompare.Schedule(SurfacePieceCount, ParallelJobBatchCount, combinedJobHandle);
 
-			combinedJobHandle = jUpdateJob.Schedule(SurfacePieceCount, Resolution, combinedJobHandle);
+			combinedJobHandle = jUpdateJob.Schedule(SurfacePieceCount, ParallelJobBatchCount, combinedJobHandle);
 
 			combinedJobHandle.Complete();
 			_localState.FinishSimulation();
 			_syncronizedState.FinishSimulation();
-
 
 			_localState.CopySurfaceTo(_combinedSurface);
 
