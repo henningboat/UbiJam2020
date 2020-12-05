@@ -1,6 +1,8 @@
 ﻿using Photon.Pun;
 using Runtime.Utils;
+using Unity.Burst;
 using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 
 namespace Runtime.GameSurfaceState
@@ -10,34 +12,35 @@ namespace Runtime.GameSurfaceState
 		#region Static Stuff
 
 		private const RpcTarget RPCSyncMethod = RpcTarget.AllViaServer;
+		public const int Resolution = 256;
+		public const int SurfacePieceCount = Resolution * Resolution;
 
 		public static Vector2 GridPositionToID(Vector2Int position)
 		{
-			return (Vector2) position * (1f / Instance._resolution);
+			return (Vector2) position * (1f / Resolution);
 		}
 
 		public static bool InsideSurface(Vector2Int position)
 		{
-			return (position.x >= 0) && (position.x < Instance._resolution) &&
-			       (position.y >= 0) && (position.y < Instance._resolution);
+			return (position.x >= 0) && (position.x < Resolution) &&
+			       (position.y >= 0) && (position.y < Resolution);
 		}
 
 		public static Vector2Int WorldSpaceToGrid(Vector2 position)
 		{
 			position /= Instance._size;
-			return new Vector2Int(Mathf.RoundToInt(position.x * Instance._resolution), Mathf.RoundToInt(position.y * Instance._resolution));
+			return new Vector2Int(Mathf.RoundToInt(position.x * Resolution), Mathf.RoundToInt(position.y * Resolution));
 		}
 
 		public static int GetIndexAtGridPosition(Vector2Int connectionPosition)
 		{
-			return connectionPosition.x + (Instance._resolution * connectionPosition.y);
+			return connectionPosition.x + (Resolution * connectionPosition.y);
 		}
 
 		#endregion
 
 		#region Serialize Fields
 
-		[SerializeField,] private int _resolution = 10;
 		[SerializeField,] private float _size;
 		[SerializeField,] private Vector2Int _startPoint = new Vector2Int(4, 4);
 		[SerializeField,] private Texture2D _gameSurfaceColorTexture;
@@ -75,20 +78,19 @@ namespace Runtime.GameSurfaceState
 			_photonView = GetComponent<PhotonView>();
 			_renderer = GetComponentInChildren<Renderer>();
 
-			WorldSpaceGridNodeSize = (1f / _resolution) * _size;
+			WorldSpaceGridNodeSize = (1f / Resolution) * _size;
 
-			_localState = new GameSurfaceState(_resolution, _size, _gameSurfaceColorTexture, false);
-			_syncronizedState = new GameSurfaceState(_resolution, _size, _gameSurfaceColorTexture, true);
+			_localState = new GameSurfaceState(Resolution, _size, _gameSurfaceColorTexture, false);
+			_syncronizedState = new GameSurfaceState(Resolution, _size, _gameSurfaceColorTexture, true);
 
-			_rpcNumberPerNode = new NativeArray<int>(_resolution * _resolution, Allocator.Persistent);
+			_rpcNumberPerNode = new NativeArray<int>(Resolution * Resolution, Allocator.Persistent);
 
-			_combinedSurface = new NativeArray<SurfaceState>(_resolution * _resolution, Allocator.Persistent);
+			_combinedSurface = new NativeArray<SurfaceState>(Resolution * Resolution, Allocator.Persistent);
 			Material material = gameObject.GetComponentInChildren<Renderer>().material;
 			material.SetTexture("_Mask", _syncronizedState.GameSurfaceTex);
 			material.SetTexture("_LocalMask", _localState.GameSurfaceTex);
-			
-			
-			_localStateBackup = new NativeArray<SurfaceState>(_resolution * _resolution, Allocator.Persistent);
+
+			_localStateBackup = new NativeArray<SurfaceState>(Resolution * Resolution, Allocator.Persistent);
 			_localState.CopySurfaceTo(_localStateBackup);
 		}
 
@@ -100,41 +102,53 @@ namespace Runtime.GameSurfaceState
 			_localState.FinishSimulation();
 			_syncronizedState.FinishSimulation();
 
-			int differenceCount=0;
-			
-			
+			// for (int i = 0; i < _rpcNumberPerNode.Length; i++)
+			// {
+			// 	if (_localState.Surface[i].State != _localStateBackup[i])
+			// 	{
+			// 		_rpcNumberPerNode[i] = _sentRPCNumber;
+			// 	}
+			// }
 
-			for (int i = 0; i < _rpcNumberPerNode.Length; i++)
-			{
-				if (_localState.Surface[i].State != _localStateBackup[i])
-				{
-					_rpcNumberPerNode[i] = _sentRPCNumber;
-				}
-			}
-			
-			for (int i = 0; i < _rpcNumberPerNode.Length; i++)
-			{
-				int rpcNumberOfNode = _rpcNumberPerNode[i];
-				if (_receivedRpcNumber >= rpcNumberOfNode)
-				{
-					SurfacePiece surfacePiece = _localState.Surface[i];
-					surfacePiece.State = _syncronizedState.Surface[i].State;
-					_localState.Surface[i] = surfacePiece;
-				}
-				else
-				{
-					differenceCount++;
-				}
-			}
+			// for (int i = 0; i < _rpcNumberPerNode.Length; i++)
+			// {
+			// 	int rpcNumberOfNode = _rpcNumberPerNode[i];
+			// 	if (_receivedRpcNumber >= rpcNumberOfNode)
+			// 	{
+			// 		SurfacePiece surfacePiece = _localState.Surface[i];
+			// 		surfacePiece.State = _syncronizedState.Surface[i].State;
+			// 		_localState.Surface[i] = surfacePiece;
+			// 	}
+			// 	// else
+			// 	// {
+			// 	// 	differenceCount++;
+			// 	// }
+			// }
+
+			CompareChangesInLocalStateJob compareJob = new CompareChangesInLocalStateJob
+			                                           {
+				                                           SentRPCNumber = _sentRPCNumber,
+				                                           RpcNumberPerNode = _rpcNumberPerNode,
+				                                           LocalStateSurface = _localState.Surface,
+				                                           LastFrameLocalSurface = _localStateBackup,
+			                                           };
+			UpdateSyncedToLocalState updateJob = new UpdateSyncedToLocalState
+			                                     {
+				                                     ReceivedRpcNumber = _receivedRpcNumber,
+				                                     LocalStateSurface = _localState.Surface,
+				                                     SyncedStateSurface = _syncronizedState.Surface,
+				                                     RpcNumberPerNode = _rpcNumberPerNode,
+			                                     };
+
+			JobHandle handle = compareJob.Schedule(SurfacePieceCount, Resolution);
+
+			handle = updateJob.Schedule(SurfacePieceCount, Resolution, handle);
+
+			handle.Complete();
 
 			_localState.CopySurfaceTo(_combinedSurface);
 
-
 			_localState.CopySurfaceTo(_localStateBackup);
-			
-			Debug.Log("diff count: " + differenceCount);
-
-			//Debug.Log($"{_sentRPCNumber} {_receivedRpcNumber}");
 		}
 
 		protected override void OnDestroy()
@@ -170,7 +184,7 @@ namespace Runtime.GameSurfaceState
 
 		public Vector3 GridPositionToWorldPosition(Vector2Int lastNodePosition)
 		{
-			return (Vector2) lastNodePosition * ((1f / _resolution) * _size);
+			return (Vector2) lastNodePosition * ((1f / Resolution) * _size);
 		}
 
 		public void SpawnDestroyedPart(Texture2D maskTexture)
@@ -185,7 +199,7 @@ namespace Runtime.GameSurfaceState
 			{
 				return _combinedSurface[GetIndexAtGridPosition(lastNodePosition)] != SurfaceState.Destroyed;
 			}
-			
+
 			return false;
 		}
 
@@ -212,7 +226,7 @@ namespace Runtime.GameSurfaceState
 		private bool TryGetPositionOnGrid(Vector2 positionWS, out Vector2Int positionOnGrid)
 		{
 			Vector2 normalizedPosition = positionWS / _size;
-			positionOnGrid = new Vector2Int(Mathf.RoundToInt(normalizedPosition.x * _resolution), Mathf.RoundToInt(normalizedPosition.y * _resolution));
+			positionOnGrid = new Vector2Int(Mathf.RoundToInt(normalizedPosition.x * Resolution), Mathf.RoundToInt(normalizedPosition.y * Resolution));
 			return (normalizedPosition.x > 0) && (normalizedPosition.y > 0) && (normalizedPosition.x < 1) && (normalizedPosition.y < 1);
 		}
 
@@ -248,6 +262,59 @@ namespace Runtime.GameSurfaceState
 		{
 			_syncronizedState.Cut(from, to);
 			HandleRPCNumberReceive(rpcNumber, info);
+		}
+
+		#endregion
+	}
+
+	[BurstCompile,]
+	public struct CompareChangesInLocalStateJob : IJobParallelFor
+	{
+		#region Public Fields
+
+		public NativeArray<SurfaceState> LastFrameLocalSurface;
+		public NativeArray<SurfacePiece> LocalStateSurface;
+		public NativeArray<int> RpcNumberPerNode;
+		public int SentRPCNumber;
+
+		#endregion
+
+		#region IJobParallelFor Members
+
+		public void Execute(int i)
+		{
+			if (LocalStateSurface[i].State != LastFrameLocalSurface[i])
+			{
+				RpcNumberPerNode[i] = SentRPCNumber;
+			}
+		}
+
+		#endregion
+	}
+
+	[BurstCompile,]
+	public struct UpdateSyncedToLocalState : IJobParallelFor
+	{
+		#region Public Fields
+
+		public NativeArray<SurfacePiece> LocalStateSurface;
+		public int ReceivedRpcNumber;
+		public NativeArray<int> RpcNumberPerNode;
+		public NativeArray<SurfacePiece> SyncedStateSurface;
+
+		#endregion
+
+		#region IJobParallelFor Members
+
+		public void Execute(int i)
+		{
+			int rpcNumberOfNode = RpcNumberPerNode[i];
+			if (ReceivedRpcNumber >= rpcNumberOfNode)
+			{
+				SurfacePiece surfacePiece = LocalStateSurface[i];
+				surfacePiece.State = SyncedStateSurface[i].State;
+				LocalStateSurface[i] = surfacePiece;
+			}
 		}
 
 		#endregion
