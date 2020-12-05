@@ -24,14 +24,15 @@ namespace Runtime.GameSurfaceSystem
 		private NativeQueue<int> _nativeQueue;
 		private NativeArray<SurfaceState> _surfaceBackup;
 		private NativeArray<bool> _anyNewSurfaceDestroyed;
+		private NativeArray<bool> _queueBlock;
 		private NativeArray<byte> _validity;
+		private NativeArray<int> _nativeQueueArray;
 
 		#endregion
 
 		#region Properties
 
 		public Texture2D GameSurfaceTex { get; }
-		public int CurrentTimestamp { get; set; }
 
 		#endregion
 
@@ -79,12 +80,13 @@ namespace Runtime.GameSurfaceSystem
 
 		public JobHandle Simulate(JobHandle dependency = default)
 		{
-			CurrentTimestamp += 2;
 			_anyNewSurfaceDestroyed = new NativeArray<bool>(1, Allocator.TempJob);
 
 			_surfaceBackup = new NativeArray<SurfaceState>(Surface, Allocator.Temp);
 
 			_nativeQueue = new NativeQueue<int>(Allocator.TempJob);
+			_nativeQueueArray = new NativeArray<int>(GameSurface.SurfacePieceCount, Allocator.TempJob);
+			_queueBlock = new NativeArray<bool>(GameSurface.SurfacePieceCount, Allocator.TempJob);
 
 			_validity = new NativeArray<byte>(GameSurface.SurfacePieceCount, Allocator.TempJob);
 			JValidateAreaJob jValidateAreaJob = new JValidateAreaJob
@@ -93,7 +95,9 @@ namespace Runtime.GameSurfaceSystem
 				                                    ConnectedPiecesKernel = _connectedPiecesKernel,
 				                                    PositionsToValidate = _nativeQueue,
 				                                    DidCutNewSurface = _anyNewSurfaceDestroyed,
+				                                    EmulatedNativeQueue = _nativeQueueArray,
 				                                    Validity = _validity,
+				                                    QueueBlock = _queueBlock
 			                                    };
 
 			JobHandle jobHandle = jValidateAreaJob.Schedule(dependency);
@@ -118,6 +122,7 @@ namespace Runtime.GameSurfaceSystem
 			_nativeQueue.Dispose();
 			_validity.Dispose();
 			GameSurfaceTex.Apply();
+			_nativeQueueArray.Dispose();_queueBlock.Dispose();
 			if (_anyNewSurfaceDestroyed[0] && _visualize)
 			{
 				SpawnDestroyedPart(Surface, _surfaceBackup);

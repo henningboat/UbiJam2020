@@ -1,7 +1,9 @@
-﻿using Unity.Burst;
+﻿
+#define UseArrayAsQueue
+
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
-using Unity.Mathematics;
 
 namespace Runtime.GameSurfaceSystem.Jobs
 {
@@ -21,8 +23,14 @@ namespace Runtime.GameSurfaceSystem.Jobs
 		public NativeArray<bool> DidCutNewSurface;
 		public NativeQueue<int> PositionsToValidate;
 		public NativeArray<SurfaceState> Surface;
-		private byte Timestamp;
 		public NativeArray<byte> Validity;
+
+		#endregion
+
+		#region Private Fields
+
+		private byte Timestamp;
+		public NativeArray<bool> QueueBlock;
 
 		#endregion
 
@@ -50,7 +58,7 @@ namespace Runtime.GameSurfaceSystem.Jobs
 				{
 					for (int i = 0; i < 4; i++)
 					{
-						int offsetInArray =  ConnectedPiecesKernel[i];
+						int offsetInArray = ConnectedPiecesKernel[i];
 						int connectionPosition = indexAtPosition + offsetInArray;
 						if (InsideSurface(connectionPosition))
 						{
@@ -58,7 +66,7 @@ namespace Runtime.GameSurfaceSystem.Jobs
 							int connectedNodeStateValidity = Validity[connectionPosition];
 							if ((connectedNodeState != SurfaceState.Destroyed) && (connectedNodeStateValidity < Timestamp))
 							{
-								PositionsToValidate.Enqueue(connectionPosition);
+								Enqueue(connectionPosition);
 							}
 						}
 					}
@@ -75,11 +83,11 @@ namespace Runtime.GameSurfaceSystem.Jobs
 				Validity[indexAtPosition] = Timestamp;
 				numberOfPiecesInGroup++;
 
-				if (nodeState != SurfaceState.Border)
+				if (nodeState == SurfaceState.Intact)
 				{
 					for (int i = 0; i < 4; i++)
 					{
-						int offsetInArray =  ConnectedPiecesKernel[i];
+						int offsetInArray = ConnectedPiecesKernel[i];
 						int connectionPosition = indexAtPosition + offsetInArray;
 						if (InsideSurface(connectionPosition))
 						{
@@ -87,7 +95,7 @@ namespace Runtime.GameSurfaceSystem.Jobs
 							int connectedNodeStateValidity = Validity[connectionPosition];
 							if ((connectedNodeState == SurfaceState.Intact) && (connectedNodeStateValidity < Timestamp))
 							{
-								PositionsToValidate.Enqueue(connectionPosition);
+								Enqueue(connectionPosition);
 							}
 						}
 					}
@@ -111,6 +119,7 @@ namespace Runtime.GameSurfaceSystem.Jobs
 			int biggestGroupID = 0;
 			int biggestGroupCount = 0;
 			int biggestGroupStartTile = 0;
+			ClearQueue();
 
 			for (int x = 0; x < Resolution; x++)
 			for (int y = 0; y < Resolution; y++)
@@ -119,11 +128,11 @@ namespace Runtime.GameSurfaceSystem.Jobs
 				if ((Surface[indexOfNode] == SurfaceState.Intact) && (Validity[indexOfNode] < Timestamp))
 				{
 					int numberOfPiecesInGroup = 0;
-					PositionsToValidate.Clear();
-					PositionsToValidate.Enqueue(indexOfNode);
-					while (PositionsToValidate.Count > 0)
+					ClearQueue();
+					Enqueue(indexOfNode);
+					while (HasQueuedPosition())
 					{
-						int positionToValidate = PositionsToValidate.Dequeue();
+						int positionToValidate = Dequeue();
 						CountAllConnectedIntactNodes(positionToValidate, ref numberOfPiecesInGroup);
 					}
 
@@ -137,11 +146,11 @@ namespace Runtime.GameSurfaceSystem.Jobs
 
 			Timestamp++;
 
-			PositionsToValidate.Clear();
-			PositionsToValidate.Enqueue(biggestGroupStartTile);
-			while (PositionsToValidate.Count > 0)
+			ClearQueue();
+			Enqueue(biggestGroupStartTile);
+			while (HasQueuedPosition())
 			{
-				int positionToValidate = PositionsToValidate.Dequeue();
+				int positionToValidate = Dequeue();
 				ValidateAllConnectedSurfaces(positionToValidate
 				);
 			}
@@ -160,6 +169,60 @@ namespace Runtime.GameSurfaceSystem.Jobs
 			}
 
 			DidCutNewSurface[0] = anyNewDestroyedNodes;
+		}
+
+		#endregion
+
+		#region Queue
+		private int _queueHead;
+		private int _queueTail;
+		public NativeArray<int> EmulatedNativeQueue;
+
+		private void Enqueue(int connectionPosition)
+		{
+			#if  UseArrayAsQueue
+			if (QueueBlock[connectionPosition] == true)
+			{
+				return;
+			}
+			EmulatedNativeQueue[_queueHead] = connectionPosition;
+			_queueHead++;
+
+			QueueBlock[connectionPosition] = true;
+#else
+			PositionsToValidate.Enqueue(connectionPosition);
+#endif
+		}
+
+		private int Dequeue()
+		{
+			#if  UseArrayAsQueue
+			int value = EmulatedNativeQueue[_queueTail];
+			QueueBlock[value] = false;
+			_queueTail++;
+			return value;
+#else
+			return PositionsToValidate.Dequeue();
+#endif
+		}
+
+		private void ClearQueue()
+		{
+			#if  UseArrayAsQueue
+			_queueTail = 0;
+			_queueHead = 0;
+#else
+			PositionsToValidate.Clear();
+#endif
+		}
+
+		private bool HasQueuedPosition()
+		{
+			#if  UseArrayAsQueue
+			return _queueHead > _queueTail;
+#else
+			return PositionsToValidate.Count > 0;
+#endif
 		}
 
 		#endregion
