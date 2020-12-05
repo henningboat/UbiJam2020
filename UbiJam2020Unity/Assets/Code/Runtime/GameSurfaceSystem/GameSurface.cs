@@ -1,11 +1,11 @@
 ﻿using Photon.Pun;
+using Runtime.GameSurfaceSystem.Jobs;
 using Runtime.Utils;
-using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 
-namespace Runtime.GameSurfaceState
+namespace Runtime.GameSurfaceSystem
 {
 	public class GameSurface : Singleton<GameSurface>
 	{
@@ -264,59 +264,6 @@ namespace Runtime.GameSurfaceState
 		{
 			_syncronizedState.Cut(from, to);
 			HandleRPCNumberReceive(rpcNumber, info);
-		}
-
-		#endregion
-	}
-
-	[BurstCompile,]
-	public struct JCompareChangesInLocalState : IJobParallelFor
-	{
-		#region Public Fields
-
-		public NativeArray<SurfaceState> LastFrameLocalSurface;
-		public NativeArray<SurfacePiece> LocalStateSurface;
-		public NativeArray<int> RpcNumberPerNode;
-		public int SentRPCNumber;
-
-		#endregion
-
-		#region IJobParallelFor Members
-
-		public void Execute(int i)
-		{
-			if (LocalStateSurface[i].State != LastFrameLocalSurface[i])
-			{
-				RpcNumberPerNode[i] = SentRPCNumber;
-			}
-		}
-
-		#endregion
-	}
-
-	[BurstCompile,]
-	public struct JUpdateSyncedToLocalState : IJobParallelFor
-	{
-		#region Public Fields
-
-		public NativeArray<SurfacePiece> LocalStateSurface;
-		public int ReceivedRpcNumber;
-		public NativeArray<int> RpcNumberPerNode;
-		public NativeArray<SurfacePiece> SyncedStateSurface;
-
-		#endregion
-
-		#region IJobParallelFor Members
-
-		public void Execute(int i)
-		{
-			int rpcNumberOfNode = RpcNumberPerNode[i];
-			if (ReceivedRpcNumber >= rpcNumberOfNode)
-			{
-				SurfacePiece surfacePiece = LocalStateSurface[i];
-				surfacePiece.State = SyncedStateSurface[i].State;
-				LocalStateSurface[i] = surfacePiece;
-			}
 		}
 
 		#endregion

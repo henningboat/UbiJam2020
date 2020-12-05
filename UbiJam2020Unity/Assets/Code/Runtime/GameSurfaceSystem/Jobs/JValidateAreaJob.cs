@@ -3,9 +3,8 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
-using UnityEngine;
 
-namespace Runtime.GameSurfaceState
+namespace Runtime.GameSurfaceSystem.Jobs
 {
 	[BurstCompile,]
 	public struct JValidateAreaJob : IJob

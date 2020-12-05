@@ -1,9 +1,10 @@
-﻿using Unity.Collections;
+﻿using Runtime.GameSurfaceSystem.Jobs;
+using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Runtime.GameSurfaceState
+namespace Runtime.GameSurfaceSystem
 {
 	public class GameSurfaceState
 	{

@@ -1,7 +1,7 @@
 ﻿using Unity.Mathematics;
 using UnityEngine;
 
-namespace Runtime.GameSurfaceState
+namespace Runtime.GameSurfaceSystem
 {
 	public struct SurfacePiece
 	{
