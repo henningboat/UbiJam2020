@@ -203,14 +203,14 @@ namespace Runtime.PlayerSystem
 				case PlayerState.Alive:
 					if (GameSurface.Instance.IsWalkableAtWorldPosition(transform.position) == false)
 					{
-						if (HasPatch)
+						if (!TrySafePlayerFromFalling())
 						{
-							GameSurface.Instance.SpawnPatch(transform.position);
-							HasPatch = false;
-						}
-						else
-						{
-							if (!TrySafePlayerFromFalling())
+							if (HasPatch)
+							{
+								GameSurface.Instance.SpawnPatch(transform.position);
+								HasPatch = false;
+							}
+							else
 							{
 								return PlayerState.Dead;
 							}

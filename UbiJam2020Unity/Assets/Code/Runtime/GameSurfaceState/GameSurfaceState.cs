@@ -1,20 +1,26 @@
 ﻿using Unity.Collections;
 using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace Runtime.GameSurfaceState
 {
 	public class GameSurfaceState
 	{
+		#region Public Fields
+
+		public NativeArray<SurfacePiece> Surface;
+
+		#endregion
+
 		#region Private Fields
 
-		private NativeArray<Vector2Int> _connectedPiecesKernel;
-		public NativeArray<SurfacePiece> Surface;
+		private readonly bool _visualize;
+		private NativeArray<int2> _connectedPiecesKernel;
 		private int _resolution;
 		private float _size;
-		private readonly bool _visualize;
 		private JobHandle _currentJobHandle;
-		private NativeQueue<Vector2Int> _nativeQueue;
+		private NativeQueue<int2> _nativeQueue;
 		private NativeArray<SurfacePiece> _surfaceBackup;
 		private NativeArray<bool> _anyNewSurfaceDestroyed;
 
@@ -34,11 +40,11 @@ namespace Runtime.GameSurfaceState
 			_size = size;
 			_visualize = visualize;
 			_resolution = resolution;
-			_connectedPiecesKernel = new NativeArray<Vector2Int>(4, Allocator.Persistent);
-			_connectedPiecesKernel[0] = Vector2Int.up;
-			_connectedPiecesKernel[1] = Vector2Int.down;
-			_connectedPiecesKernel[2] = Vector2Int.left;
-			_connectedPiecesKernel[3] = Vector2Int.right;
+			_connectedPiecesKernel = new NativeArray<int2>(4, Allocator.Persistent);
+			_connectedPiecesKernel[0] = new int2(0, +1);
+			_connectedPiecesKernel[1] = new int2(0, -1);
+			_connectedPiecesKernel[2] = new int2(+1, 0);
+			_connectedPiecesKernel[3] = new int2(-1, 0);
 
 			Surface = new NativeArray<SurfacePiece>(_resolution * _resolution, Allocator.Persistent);
 
@@ -70,30 +76,29 @@ namespace Runtime.GameSurfaceState
 
 		#region Public methods
 
-		public void Simulate()
+		public JobHandle Simulate(JobHandle dependency = default)
 		{
 			CurrentTimestamp += 2;
 			_anyNewSurfaceDestroyed = new NativeArray<bool>(1, Allocator.TempJob);
 
 			_surfaceBackup = new NativeArray<SurfacePiece>(Surface, Allocator.Temp);
 
-			_nativeQueue = new NativeQueue<Vector2Int>(Allocator.TempJob);
+			_nativeQueue = new NativeQueue<int2>(Allocator.TempJob);
 			NativeArray<Color32> data = GameSurfaceTex.GetRawTextureData<Color32>();
-			ValidateAreaJob validateAreaJob = new ValidateAreaJob
-			                                  {
-				                                  Resolution = _resolution,
-				                                  Surface = Surface,
-				                                  ConnectedPiecesKernel = _connectedPiecesKernel,
-				                                  PositionsToValidate = _nativeQueue,
-				                                  Timestamp = CurrentTimestamp,
-				                                  GameSurfaceTex = data,
-				                                  DidCutNewSurface = _anyNewSurfaceDestroyed,
-			                                  };
-			_currentJobHandle = validateAreaJob.Schedule();
+			JValidateAreaJob jValidateAreaJob = new JValidateAreaJob
+			                                    {
+				                                    Surface = Surface,
+				                                    ConnectedPiecesKernel = _connectedPiecesKernel,
+				                                    PositionsToValidate = _nativeQueue,
+				                                    Timestamp = CurrentTimestamp,
+				                                    GameSurfaceTex = data.Reinterpret<uint>(),
+				                                    DidCutNewSurface = _anyNewSurfaceDestroyed,
+			                                    };
+			return jValidateAreaJob.Schedule(dependency);
 		}
-		
-		public void FinishSimulation(){
 
+		public void FinishSimulation()
+		{
 			_currentJobHandle.Complete();
 			_nativeQueue.Dispose();
 			GameSurfaceTex.Apply();

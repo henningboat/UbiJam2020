@@ -96,12 +96,11 @@ namespace Runtime.GameSurfaceState
 
 		private void LateUpdate()
 		{
-			_localState.Simulate();
-			_syncronizedState.Simulate();
+			JobHandle localStateHandle =_localState.Simulate();
+			JobHandle syncedStateHandle = _syncronizedState.Simulate();
 
-			_localState.FinishSimulation();
-			_syncronizedState.FinishSimulation();
-
+			var combinedJobHandle = JobHandle.CombineDependencies(localStateHandle, syncedStateHandle);
+			
 			// for (int i = 0; i < _rpcNumberPerNode.Length; i++)
 			// {
 			// 	if (_localState.Surface[i].State != _localStateBackup[i])
@@ -125,14 +124,14 @@ namespace Runtime.GameSurfaceState
 			// 	// }
 			// }
 
-			CompareChangesInLocalStateJob compareJob = new CompareChangesInLocalStateJob
+			JCompareChangesInLocalState jCompare = new JCompareChangesInLocalState
 			                                           {
 				                                           SentRPCNumber = _sentRPCNumber,
 				                                           RpcNumberPerNode = _rpcNumberPerNode,
 				                                           LocalStateSurface = _localState.Surface,
 				                                           LastFrameLocalSurface = _localStateBackup,
 			                                           };
-			UpdateSyncedToLocalState updateJob = new UpdateSyncedToLocalState
+			JUpdateSyncedToLocalState jUpdateJob = new JUpdateSyncedToLocalState
 			                                     {
 				                                     ReceivedRpcNumber = _receivedRpcNumber,
 				                                     LocalStateSurface = _localState.Surface,
@@ -140,11 +139,14 @@ namespace Runtime.GameSurfaceState
 				                                     RpcNumberPerNode = _rpcNumberPerNode,
 			                                     };
 
-			JobHandle handle = compareJob.Schedule(SurfacePieceCount, Resolution);
+			combinedJobHandle = jCompare.Schedule(SurfacePieceCount, Resolution, combinedJobHandle);
 
-			handle = updateJob.Schedule(SurfacePieceCount, Resolution, handle);
+			combinedJobHandle = jUpdateJob.Schedule(SurfacePieceCount, Resolution, combinedJobHandle);
 
-			handle.Complete();
+			combinedJobHandle.Complete();
+			_localState.FinishSimulation();
+			_syncronizedState.FinishSimulation();
+
 
 			_localState.CopySurfaceTo(_combinedSurface);
 
@@ -268,7 +270,7 @@ namespace Runtime.GameSurfaceState
 	}
 
 	[BurstCompile,]
-	public struct CompareChangesInLocalStateJob : IJobParallelFor
+	public struct JCompareChangesInLocalState : IJobParallelFor
 	{
 		#region Public Fields
 
@@ -293,7 +295,7 @@ namespace Runtime.GameSurfaceState
 	}
 
 	[BurstCompile,]
-	public struct UpdateSyncedToLocalState : IJobParallelFor
+	public struct JUpdateSyncedToLocalState : IJobParallelFor
 	{
 		#region Public Fields
 

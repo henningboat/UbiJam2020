@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Unity.Mathematics;
+using UnityEngine;
 
 namespace Runtime.GameSurfaceState
 {
@@ -6,7 +7,7 @@ namespace Runtime.GameSurfaceState
 	{
 		#region Properties
 
-		public Vector2Int Position { get; }
+		public int2 Position { get; }
 		public SurfaceState State { get;  set; }
 		public int ValidAtTimestamp { get; private set; }
 
@@ -17,7 +18,7 @@ namespace Runtime.GameSurfaceState
 		public SurfacePiece(Vector2Int position, SurfaceState state = SurfaceState.Intact)
 		{
 			State = state;
-			Position = position;
+			Position = new int2(position.x, position.y);
 			ValidAtTimestamp = 0;
 		}
 
