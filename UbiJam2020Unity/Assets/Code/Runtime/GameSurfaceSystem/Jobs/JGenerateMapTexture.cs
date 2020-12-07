@@ -24,19 +24,17 @@ namespace Runtime.GameSurfaceSystem.Jobs
 
 			SurfaceState node = Surface[i];
 
-			switch (node)
+			uint nodeColor;
+
+			if (node == SurfaceState.Intact)
 			{
-				case SurfaceState.Intact:
-				case SurfaceState.Permanent:
-					GameSurfaceTex[i] = colorSolid;
-					break;
-				case SurfaceState.Border:
-				case SurfaceState.Destroyed:
-					GameSurfaceTex[i] = colorClear;
-					break;
-				default:
-					throw new ArgumentOutOfRangeException();
+				nodeColor = colorSolid;
 			}
+			else
+			{
+				nodeColor = colorClear;
+			}
+			GameSurfaceTex[i] = nodeColor;
 		}
 
 		#endregion

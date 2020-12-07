@@ -30,7 +30,6 @@ namespace Runtime.GameSurfaceSystem.Jobs
 		#region Private Fields
 
 		private byte Timestamp;
-		public NativeArray<bool> QueueBlock;
 
 		#endregion
 
@@ -48,26 +47,21 @@ namespace Runtime.GameSurfaceSystem.Jobs
 		private void ValidateAllConnectedSurfaces(int indexAtPosition)
 		{
 			SurfaceState nodeState = Surface[indexAtPosition];
-			int nodeValidity = Validity[indexAtPosition];
 
-			if (nodeValidity < Timestamp)
+			if (nodeState != SurfaceState.Border)
 			{
-				Validity[indexAtPosition] = Timestamp;
-
-				if (nodeState != SurfaceState.Border)
+				for (int i = 0; i < 4; i++)
 				{
-					for (int i = 0; i < 4; i++)
+					int offsetInArray = ConnectedPiecesKernel[i];
+					int connectionPosition = indexAtPosition + offsetInArray;
+					if (InsideSurface(connectionPosition))
 					{
-						int offsetInArray = ConnectedPiecesKernel[i];
-						int connectionPosition = indexAtPosition + offsetInArray;
-						if (InsideSurface(connectionPosition))
+						SurfaceState connectedNodeState = Surface[connectionPosition];
+						int connectedNodeStateValidity = Validity[connectionPosition];
+						if ((connectedNodeState != SurfaceState.Destroyed) && (connectedNodeStateValidity < Timestamp))
 						{
-							SurfaceState connectedNodeState = Surface[connectionPosition];
-							int connectedNodeStateValidity = Validity[connectionPosition];
-							if ((connectedNodeState != SurfaceState.Destroyed) && (connectedNodeStateValidity < Timestamp))
-							{
-								Enqueue(connectionPosition);
-							}
+							Validity[connectionPosition] = Timestamp;
+							Enqueue(connectionPosition);
 						}
 					}
 				}
@@ -77,26 +71,23 @@ namespace Runtime.GameSurfaceSystem.Jobs
 		private void CountAllConnectedIntactNodes(int indexAtPosition, ref int numberOfPiecesInGroup)
 		{
 			SurfaceState nodeState = Surface[indexAtPosition];
-			int nodeValidity = Validity[indexAtPosition];
-			if (nodeValidity < Timestamp)
-			{
-				Validity[indexAtPosition] = Timestamp;
-				numberOfPiecesInGroup++;
 
-				if (nodeState == SurfaceState.Intact)
+			numberOfPiecesInGroup++;
+
+			if (nodeState == SurfaceState.Intact)
+			{
+				for (int i = 0; i < 4; i++)
 				{
-					for (int i = 0; i < 4; i++)
+					int offsetInArray = ConnectedPiecesKernel[i];
+					int connectionPosition = indexAtPosition + offsetInArray;
+					if (InsideSurface(connectionPosition))
 					{
-						int offsetInArray = ConnectedPiecesKernel[i];
-						int connectionPosition = indexAtPosition + offsetInArray;
-						if (InsideSurface(connectionPosition))
+						SurfaceState connectedNodeState = Surface[connectionPosition];
+						int connectedNodeStateValidity = Validity[connectionPosition];
+						if ((connectedNodeState == SurfaceState.Intact) && (connectedNodeStateValidity < Timestamp))
 						{
-							SurfaceState connectedNodeState = Surface[connectionPosition];
-							int connectedNodeStateValidity = Validity[connectionPosition];
-							if ((connectedNodeState == SurfaceState.Intact) && (connectedNodeStateValidity < Timestamp))
-							{
-								Enqueue(connectionPosition);
-							}
+							Validity[connectionPosition] = Timestamp;
+							Enqueue(connectionPosition);
 						}
 					}
 				}
@@ -129,6 +120,7 @@ namespace Runtime.GameSurfaceSystem.Jobs
 				{
 					int numberOfPiecesInGroup = 0;
 					ClearQueue();
+					Validity[indexOfNode] = Timestamp;
 					Enqueue(indexOfNode);
 					while (HasQueuedPosition())
 					{
@@ -147,6 +139,7 @@ namespace Runtime.GameSurfaceSystem.Jobs
 			Timestamp++;
 
 			ClearQueue();
+			Validity[biggestGroupStartTile] = Timestamp;
 			Enqueue(biggestGroupStartTile);
 			while (HasQueuedPosition())
 			{
@@ -181,14 +174,10 @@ namespace Runtime.GameSurfaceSystem.Jobs
 		private void Enqueue(int connectionPosition)
 		{
 			#if  UseArrayAsQueue
-			if (QueueBlock[connectionPosition] == true)
-			{
-				return;
-			}
+		
 			EmulatedNativeQueue[_queueHead] = connectionPosition;
 			_queueHead++;
 
-			QueueBlock[connectionPosition] = true;
 #else
 			PositionsToValidate.Enqueue(connectionPosition);
 #endif
@@ -198,7 +187,6 @@ namespace Runtime.GameSurfaceSystem.Jobs
 		{
 			#if  UseArrayAsQueue
 			int value = EmulatedNativeQueue[_queueTail];
-			QueueBlock[value] = false;
 			_queueTail++;
 			return value;
 #else

@@ -24,7 +24,6 @@ namespace Runtime.GameSurfaceSystem
 		private NativeQueue<int> _nativeQueue;
 		private NativeArray<SurfaceState> _surfaceBackup;
 		private NativeArray<bool> _anyNewSurfaceDestroyed;
-		private NativeArray<bool> _queueBlock;
 		private NativeArray<byte> _validity;
 		private NativeArray<int> _nativeQueueArray;
 
@@ -86,7 +85,6 @@ namespace Runtime.GameSurfaceSystem
 
 			_nativeQueue = new NativeQueue<int>(Allocator.TempJob);
 			_nativeQueueArray = new NativeArray<int>(GameSurface.SurfacePieceCount, Allocator.TempJob);
-			_queueBlock = new NativeArray<bool>(GameSurface.SurfacePieceCount, Allocator.TempJob);
 
 			_validity = new NativeArray<byte>(GameSurface.SurfacePieceCount, Allocator.TempJob);
 			JValidateAreaJob jValidateAreaJob = new JValidateAreaJob
@@ -97,7 +95,6 @@ namespace Runtime.GameSurfaceSystem
 				                                    DidCutNewSurface = _anyNewSurfaceDestroyed,
 				                                    EmulatedNativeQueue = _nativeQueueArray,
 				                                    Validity = _validity,
-				                                    QueueBlock = _queueBlock
 			                                    };
 
 			JobHandle jobHandle = jValidateAreaJob.Schedule(dependency);
@@ -108,7 +105,7 @@ namespace Runtime.GameSurfaceSystem
 				JGenerateMapTexture generateMapTextureJob = new JGenerateMapTexture
 				                                            {
 					                                            Surface = Surface,
-					                                            GameSurfaceTex = data.Reinterpret<uint>(),
+					                                            GameSurfaceTex = data.Reinterpret<uint4>(),
 				                                            };
 				jobHandle = generateMapTextureJob.Schedule(GameSurface.SurfacePieceCount, GameSurface.ParallelJobBatchCount, jobHandle);
 			}
@@ -122,7 +119,7 @@ namespace Runtime.GameSurfaceSystem
 			_nativeQueue.Dispose();
 			_validity.Dispose();
 			GameSurfaceTex.Apply();
-			_nativeQueueArray.Dispose();_queueBlock.Dispose();
+			_nativeQueueArray.Dispose();
 			if (_anyNewSurfaceDestroyed[0] && _visualize)
 			{
 				SpawnDestroyedPart(Surface, _surfaceBackup);
