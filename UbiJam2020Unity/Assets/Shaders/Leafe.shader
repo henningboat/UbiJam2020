@@ -59,8 +59,8 @@
             fixed4 frag (v2f i) : SV_Target
             {
                 fixed4 col = tex2D(_MainTex, i.uv);
-                fixed4 maskCol = tex2D(_Mask, i.uv);
-                fixed4 localMaskCol = tex2D(_LocalMask, i.uv);
+                fixed maskCol = tex2D(_Mask, i.uv);
+                fixed localMaskCol = tex2D(_LocalMask, i.uv);
                 
                 
                 float2 patchUV = ((_PatchTransformation.xy-i.positionWS)/(_PatchTransformation.z*2))+0.5;
@@ -76,13 +76,13 @@
                 
                 col.rgb=lerp(col.rgb, _FogColor.rgb,min(0.8,_FogColor.a*i.positionWS.z));
                 
-                clip(maskCol.a*col.a-0.5);
+                clip(maskCol*col.a-0.5);
                 
                 if(_ShowMap>0){
-                    if(localMaskCol.a<0.50&&maskCol.a>0.5){
+                    if(localMaskCol<0.50&&maskCol>0.5){
                         return float4(1,0,0,1);
                     }else{
-                        return maskCol.a;
+                        return maskCol;
                     }
                 }else{
                     return float4(col);

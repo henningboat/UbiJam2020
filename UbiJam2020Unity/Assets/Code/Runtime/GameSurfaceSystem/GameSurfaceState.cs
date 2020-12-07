@@ -70,7 +70,7 @@ namespace Runtime.GameSurfaceSystem
 				Surface[x + (y * _resolution)] = surfaceState;
 			}
 
-			GameSurfaceTex = new Texture2D(_resolution, _resolution, TextureFormat.ARGB32, false);
+			GameSurfaceTex = new Texture2D(_resolution, _resolution, TextureFormat.R8, false);
 		}
 
 		#endregion
@@ -101,13 +101,13 @@ namespace Runtime.GameSurfaceSystem
 
 			if (_visualize)
 			{
-				NativeArray<Color32> data = GameSurfaceTex.GetRawTextureData<Color32>();
+				NativeArray<byte> data = GameSurfaceTex.GetRawTextureData<byte>();
 				JGenerateMapTexture generateMapTextureJob = new JGenerateMapTexture
 				                                            {
 					                                            Surface = Surface,
-					                                            GameSurfaceTex = data.Reinterpret<uint>(),
+					                                            GameSurfaceTex = data,
 				                                            };
-				jobHandle = generateMapTextureJob.Schedule(GameSurface.SurfacePieceCount, GameSurface.ParallelJobBatchCount, jobHandle);
+				jobHandle = generateMapTextureJob.Schedule(jobHandle);
 			}
 
 			return jobHandle;
