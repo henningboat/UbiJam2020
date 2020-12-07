@@ -105,7 +105,7 @@ namespace Runtime.GameSurfaceSystem
 				JGenerateMapTexture generateMapTextureJob = new JGenerateMapTexture
 				                                            {
 					                                            Surface = Surface,
-					                                            GameSurfaceTex = data.Reinterpret<uint4>(),
+					                                            GameSurfaceTex = data.Reinterpret<uint>(),
 				                                            };
 				jobHandle = generateMapTextureJob.Schedule(GameSurface.SurfacePieceCount, GameSurface.ParallelJobBatchCount, jobHandle);
 			}
