@@ -12,8 +12,17 @@
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" }
+        Tags { 
+            "Queue"="Transparent"
+            "IgnoreProjector"="True"
+            "RenderType"="Transparent"
+        }
         LOD 100
+
+        Cull Off
+        Lighting Off
+        ZWrite Off
+        Blend One OneMinusSrcAlpha
 
         Pass
         {
@@ -22,11 +31,12 @@
             #pragma fragment frag
 
             #include "UnityCG.cginc"
+            #include "Assets/Shaders/Common.hlsl"
+            #pragma multi_compile _ ApplyTransformTex
 
             struct appdata
             {
                 float4 vertex : POSITION;
-                float2 uv : TEXCOORD0;
             };
 
             struct v2f
@@ -50,9 +60,15 @@
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
-                o.uv = v.uv;
-                o.positionWS = mul(UNITY_MATRIX_M,v.vertex);
+                o.uv = v.vertex.xy+0.5;
+                float4 positionWS;
+                float4 positionCS;
+                
+                TransformPosition(v.vertex, positionWS, positionCS);
+                
+                o.vertex = positionCS;
+                o.positionWS = positionWS;
+                
                 return o;
             }
 

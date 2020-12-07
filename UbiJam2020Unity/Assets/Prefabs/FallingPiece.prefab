@@ -265,7 +265,6 @@ GameObject:
   - component: {fileID: 8613830408347847985}
   - component: {fileID: 8613830408347845326}
   - component: {fileID: 8613830408347845327}
-  - component: {fileID: 8613830408347847984}
   - component: {fileID: 8229328309608016079}
   m_Layer: 0
   m_Name: FallingPiece
@@ -298,7 +297,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8613830408347847986}
-  m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: -462981019419857548, guid: 69373acbaa054414d9bdffa298485ecf, type: 3}
 --- !u!23 &8613830408347845327
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -340,20 +339,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &8613830408347847984
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8613830408347847986}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 4
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!114 &8229328309608016079
 MonoBehaviour:
   m_ObjectHideFlags: 0

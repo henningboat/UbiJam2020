@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Photon.Pun;
 using Runtime.PlayerSystem;
+using Runtime.UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -89,6 +90,21 @@ namespace Runtime.GameSystem
 
 		#region Protected methods
 
+		private void Start()
+		{
+			if (!PhotonNetwork.IsConnected || !PhotonNetwork.InRoom)
+			{
+				if (Application.isEditor)
+				{
+					MainMenuManager.OpenMainMenu(MainMenuOpenReason.StartOfflineDebugSession);
+				}
+				else
+				{
+					MainMenuManager.OpenMainMenu(MainMenuOpenReason.SelfDisconnected);
+				}
+			}
+		}
+
 		[PunRPC,]
 		protected override void RPCOnStateChange(byte oldStateByte, byte newStateByte)
 		{
@@ -117,7 +133,7 @@ namespace Runtime.GameSystem
 		public static void DisconnectAndLoadMenu()
 		{
 			PhotonNetwork.Disconnect();
-			SceneManager.LoadScene(0);
+			MainMenuManager.OpenMainMenu(MainMenuOpenReason.PlayerDisconnected);
 		}
 
 		protected override GameState GetNextState()

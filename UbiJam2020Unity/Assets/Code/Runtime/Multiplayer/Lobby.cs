@@ -60,5 +60,11 @@ namespace Runtime.Multiplayer
 		}
 
 		#endregion
+
+		public void ConnectOffline()
+		{
+			PhotonNetwork.OfflineMode = true;
+			Connect();
+		}
 	}
 }

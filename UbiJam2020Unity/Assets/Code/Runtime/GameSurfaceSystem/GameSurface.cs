@@ -29,7 +29,7 @@ namespace Runtime.GameSurfaceSystem
 
 		public static Vector2Int WorldSpaceToGrid(Vector2 position)
 		{
-			position /= Instance._size;
+			position /= Size;
 			return new Vector2Int(Mathf.RoundToInt(position.x * Resolution), Mathf.RoundToInt(position.y * Resolution));
 		}
 
@@ -42,7 +42,6 @@ namespace Runtime.GameSurfaceSystem
 
 		#region Serialize Fields
 
-		[SerializeField,] private float _size;
 		[SerializeField,] private Vector2Int _startPoint = new Vector2Int(4, 4);
 		[SerializeField,] private Texture2D _gameSurfaceColorTexture;
 		[SerializeField,] private FallingPiece _fallingPiecePrefab;
@@ -68,6 +67,7 @@ namespace Runtime.GameSurfaceSystem
 		#region Properties
 
 		public float WorldSpaceGridNodeSize { get; private set; }
+		public const float Size = 10;
 
 		#endregion
 
@@ -79,10 +79,10 @@ namespace Runtime.GameSurfaceSystem
 			_photonView = GetComponent<PhotonView>();
 			_renderer = GetComponentInChildren<Renderer>();
 
-			WorldSpaceGridNodeSize = (1f / Resolution) * _size;
+			WorldSpaceGridNodeSize = (1f / Resolution) * Size;
 
-			_localState = new GameSurfaceState(Resolution, _size, _gameSurfaceColorTexture, false);
-			_syncronizedState = new GameSurfaceState(Resolution, _size, _gameSurfaceColorTexture, true);
+			_localState = new GameSurfaceState(Resolution, Size, _gameSurfaceColorTexture, false);
+			_syncronizedState = new GameSurfaceState(Resolution, Size, _gameSurfaceColorTexture, true);
 
 			_rpcNumberPerNode = new NativeArray<int>(Resolution * Resolution, Allocator.Persistent);
 
@@ -144,9 +144,12 @@ namespace Runtime.GameSurfaceSystem
 
 			combinedJobHandle = jUpdateJob.Schedule(SurfacePieceCount, ParallelJobBatchCount, combinedJobHandle);
 
+			combinedJobHandle = GameSurfaceRenderingHandler.Instance.ScheduleJobs(_localState, combinedJobHandle);
+			
 			combinedJobHandle.Complete();
 			_localState.FinishSimulation();
 			_syncronizedState.FinishSimulation();
+			GameSurfaceRenderingHandler.Instance.Finish(_localState);
 
 			_localState.CopySurfaceTo(_combinedSurface);
 
@@ -186,7 +189,7 @@ namespace Runtime.GameSurfaceSystem
 
 		public Vector3 GridPositionToWorldPosition(Vector2Int lastNodePosition)
 		{
-			return (Vector2) lastNodePosition * ((1f / Resolution) * _size);
+			return (Vector2) lastNodePosition * ((1f / Resolution) * Size);
 		}
 
 		public void SpawnDestroyedPart(Texture2D maskTexture)
@@ -227,7 +230,7 @@ namespace Runtime.GameSurfaceSystem
 
 		private bool TryGetPositionOnGrid(Vector2 positionWS, out Vector2Int positionOnGrid)
 		{
-			Vector2 normalizedPosition = positionWS / _size;
+			Vector2 normalizedPosition = positionWS / Size;
 			positionOnGrid = new Vector2Int(Mathf.RoundToInt(normalizedPosition.x * Resolution), Mathf.RoundToInt(normalizedPosition.y * Resolution));
 			return (normalizedPosition.x > 0) && (normalizedPosition.y > 0) && (normalizedPosition.x < 1) && (normalizedPosition.y < 1);
 		}

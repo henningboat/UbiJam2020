@@ -13,6 +13,18 @@ namespace Runtime.UI
 {
 	public class MainMenuManager : StateMachineSingleton<MainMenuState, MainMenuManager>
 	{
+		#region Static Stuff
+
+		private static MainMenuOpenReason _mainMenuOpenReason;
+
+		public static void OpenMainMenu(MainMenuOpenReason mainMenuOpenReason)
+		{
+			_mainMenuOpenReason = mainMenuOpenReason;
+			SceneManager.LoadScene(0);
+		}
+
+		#endregion
+
 		#region Serialize Fields
 
 		[SerializeField,] private CanvasGroup _titleScreenCanvasGroup;
@@ -43,6 +55,10 @@ namespace Runtime.UI
 
 		private void Start()
 		{
+			if (_mainMenuOpenReason == MainMenuOpenReason.StartOfflineDebugSession)
+			{
+				Lobby.Instance.ConnectOffline();
+			}
 			_characterSelectionScreens = FindObjectsOfType<CharacterSelectionScreen>().ToList();
 		}
 
@@ -113,5 +129,13 @@ namespace Runtime.UI
 		TitleScreen,
 		CharacterSelection,
 		Starting,
+	}
+
+	public enum MainMenuOpenReason
+	{
+		FirstGameStart,
+		StartOfflineDebugSession,
+		PlayerDisconnected,
+		SelfDisconnected,
 	}
 }
