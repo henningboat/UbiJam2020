@@ -17,9 +17,14 @@ namespace Runtime.GameSurfaceSystem
 		public const int SurfacePieceCount = Resolution * Resolution;
 		public const int ParallelJobBatchCount = SurfacePieceCount / 16;
 
-		public static Vector2 GridPositionToID(Vector2Int position)
+		public static Vector2 GridPositionToUV(Vector2Int position)
 		{
 			return (Vector2) position * (1f / Resolution);
+		}
+
+		public static Vector2Int GridIndexToGridPosition(int index)
+		{
+			return new Vector2Int(index % Resolution, index / Resolution);
 		}
 
 		public static bool InsideSurface(Vector2Int position)
@@ -156,22 +161,24 @@ namespace Runtime.GameSurfaceSystem
 
 		public void DestroyCircle(Vector3 explosionPosition, float radius)
 		{
-			_localState.FillCircle(explosionPosition, radius, SurfaceState.Destroyed);
+			var data = new GameSurfaceCircleEvent(explosionPosition, radius, false);
+			_localState.AddEvent(data);
 			BeforeRPCSent();
-			_photonView.RPC("RPCDestroyCircle", RPCSyncMethod, explosionPosition, radius);
+			_photonView.RPC("RPCSpawnCircle", RPCSyncMethod, data);
 		}
 
 		public void SpawnPatch(Vector3 patchPosition)
 		{
-			_localState.FillCircle(patchPosition, _patchRadius, SurfaceState.Intact);
+			var data = new GameSurfaceCircleEvent(patchPosition, _patchRadius, true);
+			_localState.AddEvent(data);
 			BeforeRPCSent();
+			_photonView.RPC("RPCSpawnCircle", RPCSyncMethod, data);
 			GetComponentInChildren<Renderer>().material.SetVector("_PatchTransformation", new Vector4(patchPosition.x, patchPosition.y, _patchRadius));
-			_photonView.RPC("RPCSpawnPatch", RPCSyncMethod, patchPosition);
 		}
 
-		public Vector3 GridPositionToWorldPosition(Vector2Int lastNodePosition)
+		public static Vector3 GridPositionToWorldPosition(Vector2Int gridPosition)
 		{
-			return (Vector2) lastNodePosition * ((1f / Resolution) * Size);
+			return (Vector2) gridPosition * ((1f / Resolution) * Size);
 		}
 
 		public void SpawnDestroyedPart(Texture2D maskTexture)
@@ -240,26 +247,23 @@ namespace Runtime.GameSurfaceSystem
 		#endregion
 
 		#region RPC
-
 		[PunRPC,]
-		private void RPCDestroyCircle(Vector3 explosionPosition, float radius, PhotonMessageInfo info)
+		private void RPCCut(GameSurfaceSingleCutEvent data, PhotonMessageInfo info)
 		{
-			_syncronizedState.FillCircle(explosionPosition, radius, SurfaceState.Destroyed);
+			_syncronizedState.AddEvent(data);
 			HandleRPCReceive(info);
 		}
-
+		
 		[PunRPC,]
-		private void RPCSpawnPatch(Vector3 patchPosition, PhotonMessageInfo info)
+		private void RPCSpawnCircle(GameSurfaceCircleEvent data, PhotonMessageInfo info)
 		{
-			_syncronizedState.FillCircle(patchPosition, _patchRadius, SurfaceState.Intact);
-			GetComponentInChildren<Renderer>().material.SetVector("_PatchTransformation", new Vector4(patchPosition.x, patchPosition.y, _patchRadius));
-			HandleRPCReceive(info);
-		}
+			_syncronizedState.AddEvent(data);
+			Vector2 worldPosition = data.WorldPosition;
+			if (data.HealSurface)
+			{
+				GetComponentInChildren<Renderer>().material.SetVector("_PatchTransformation", new Vector4(worldPosition.x, worldPosition.y, _patchRadius));
+			}
 
-		[PunRPC,]
-		private void RPCCut(GameSurfaceSingleCutEvent eventData, PhotonMessageInfo info)
-		{
-			_syncronizedState.AddEvent(eventData);
 			HandleRPCReceive(info);
 		}
 

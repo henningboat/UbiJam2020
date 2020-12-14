@@ -267,7 +267,7 @@ namespace Runtime.PlayerSystem
 				Vector2Int potentialSafePosition = _lastNodePosition + new Vector2Int(x, y);
 				if (GameSurface.Instance.IsWalkableAtGridPosition(potentialSafePosition))
 				{
-					Vector2 safePositionWS= GameSurface.Instance.GridPositionToWorldPosition(potentialSafePosition);
+					Vector2 safePositionWS= GameSurface.GridPositionToWorldPosition(potentialSafePosition);
 					float distance = Vector2.Distance(transform.position, safePositionWS);
 					if (distance < closestSafePositionDistance)
 					{

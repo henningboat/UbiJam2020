@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Runtime.Data;
 using Runtime.GameSurfaceSystem.Jobs;
 using Unity.Collections;
 using Unity.Jobs;
-using Unity.Mathematics;
 using UnityEngine;
 
 namespace Runtime.GameSurfaceSystem
@@ -46,7 +44,7 @@ namespace Runtime.GameSurfaceSystem
 			_size = size;
 			_visualize = visualize;
 			_resolution = resolution;
-			
+
 			_connectedPiecesKernel = new NativeArray<int>(4, Allocator.Persistent);
 			_connectedPiecesKernel[0] = GameSurface.Resolution;
 			_connectedPiecesKernel[1] = -GameSurface.Resolution;
@@ -58,7 +56,7 @@ namespace Runtime.GameSurfaceSystem
 			for (int x = 0; x < _resolution; x++)
 			for (int y = 0; y < _resolution; y++)
 			{
-				Vector2 uv = GameSurface.GridPositionToID(new Vector2Int(x, y));
+				Vector2 uv = GameSurface.GridPositionToUV(new Vector2Int(x, y));
 				float gamefieldTexValue = gameSurfaceTexture.GetPixelBilinear(uv.x, uv.y).a;
 
 				SurfaceState surfaceState;
@@ -158,72 +156,6 @@ namespace Runtime.GameSurfaceSystem
 			GameSurface.Instance.SpawnDestroyedPart(maskTexture);
 		}
 
-		public void FillCircle(Vector3 explosionPosition, float radius, SurfaceState overwriteState)
-		{
-			for (int x = 0; x < _resolution; x++)
-			{
-				for (int y = 0; y < _resolution; y++)
-				{
-					Vector2 positonWS = new Vector2(((float) x / _resolution) * _size, ((float) y / _resolution) * _size);
-					if (Vector2.Distance(explosionPosition, positonWS) < radius)
-					{
-						int indexAtPosition = GameSurface.GetIndexAtGridPosition(new Vector2Int(x, y));
-						Surface[indexAtPosition] = overwriteState;
-					}
-				}
-			}
-		}
-
-		public void Cut(Vector2 from, Vector2 to)
-		{
-			throw new NotImplementedException();
-			Vector2Int fromGridPos = GameSurface.WorldSpaceToGrid(from);
-			Vector2Int toGridPos = GameSurface.WorldSpaceToGrid(to);
-
-			if (fromGridPos == toGridPos)
-			{
-				CutInternal(fromGridPos);
-				return;
-			}
-
-			Vector2Int delta = toGridPos - fromGridPos;
-			bool mayorIsHorizontal = Mathf.Abs(delta.x) > Mathf.Abs(delta.y);
-
-			int fromPosOnMayorAxis = mayorIsHorizontal ? fromGridPos.x : fromGridPos.y;
-			int toPosOnMayorAxis = mayorIsHorizontal ? toGridPos.x : toGridPos.y;
-
-			int fromPosOnMinorAxis = mayorIsHorizontal ? fromGridPos.y : fromGridPos.x;
-			int toPosOnMinorAxis = mayorIsHorizontal ? toGridPos.y : toGridPos.x;
-
-			int currentMayorPos = fromPosOnMayorAxis;
-			int currentMinorPos = fromPosOnMinorAxis;
-
-			while (currentMayorPos != toPosOnMayorAxis)
-			{
-				if (mayorIsHorizontal)
-				{
-					CutInternal(new Vector2Int(currentMayorPos, currentMinorPos));
-				}
-				else
-				{
-					CutInternal(new Vector2Int(currentMinorPos, currentMayorPos));
-				}
-
-				if (toPosOnMayorAxis > currentMayorPos)
-				{
-					currentMayorPos++;
-				}
-				else
-				{
-					currentMayorPos--;
-				}
-
-				currentMinorPos = Mathf.RoundToInt(Mathf.Lerp(fromPosOnMinorAxis, toPosOnMinorAxis, (float) (currentMayorPos - fromPosOnMayorAxis) / (toPosOnMayorAxis - fromPosOnMayorAxis)));
-			}
-
-			CutInternal(toGridPos);
-		}
-
 		public void Dispose()
 		{
 			_connectedPiecesKernel.Dispose();
@@ -235,30 +167,13 @@ namespace Runtime.GameSurfaceSystem
 			Surface.CopyTo(combinedSurface);
 		}
 
-		#endregion
-
-		#region Private methods
-
-		private void CutInternal(Vector2Int positionOnGrid)
-		{
-			if (GameSurface.InsideSurface(positionOnGrid))
-			{
-				int indexAtPosition = GameSurface.GetIndexAtGridPosition(positionOnGrid);
-				SurfaceState surfaceState = Surface[indexAtPosition];
-				if (surfaceState == SurfaceState.Intact)
-				{
-					Surface[indexAtPosition] = SurfaceState.Border;
-				}
-			}
-		}
-
-		#endregion
-
 		public void AddEvent(IGameSurfaceEvent data)
 		{
 			//todo
 			//_scheduledEvents.Enqueue(data);
 			data.ScheduleJob(this, default).Complete();
 		}
+
+		#endregion
 	}
 }

@@ -87,7 +87,6 @@ namespace Runtime.Data
 
 		#endregion
 	}
-
 	public interface IGameSurfaceEvent
 	{
 		JobHandle ScheduleJob(GameSurfaceState state, JobHandle dependencies);
