@@ -82,6 +82,7 @@ namespace Runtime.PlayerSystem
 
 		protected override void Update()
 		{
+			Debug.DrawRay(transform.position, GetNormalAtWorldPosition(transform.position), Color.red);
 			UpdateRotation();
 			if (!_photonView.IsMine)
 			{
@@ -165,8 +166,11 @@ namespace Runtime.PlayerSystem
 			if (State == PlayerState.Alive)
 			{
 				Vector2 positionDelta = transform.position - _lastFramePosition;
-				Quaternion newRotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(Vector3.forward, positionDelta), _rotationSpeed * Time.deltaTime);
-				transform.rotation = newRotation;
+				if (positionDelta.magnitude > Mathf.Epsilon)
+				{
+					Quaternion newRotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(Vector3.forward, positionDelta), _rotationSpeed * Time.deltaTime);
+					transform.rotation = newRotation;
+				}
 			}
 
 			_lastFramePosition = transform.position;
@@ -296,13 +300,16 @@ namespace Runtime.PlayerSystem
 
 				Vector2 offset = direction * currentStepSize;
 
-				didMove = TryTranslateStep(offset, out Vector2 wallNormal, ref distanceToTravel);
+				didMove = TryTranslateStep(offset, ref distanceToTravel);
 
 				if (!didMove)
 				{
-					Vector2 reflectedOffset = Vector2.Reflect(offset, wallNormal);
-					Debug.DrawRay(transform.position, reflectedOffset.normalized, Color.white);
-					TryTranslateStep(reflectedOffset, out wallNormal, ref distanceToTravel);
+					Vector2 wallNormal = GetNormalAtWorldPosition(transform.position);
+					if (Vector2.Angle(offset, wallNormal) < 170)
+					{
+						Vector2 reflectedOffset = Vector2.Reflect(offset, wallNormal);
+						TryTranslateStep(reflectedOffset, ref distanceToTravel);
+					}
 				}
 
 
@@ -313,7 +320,7 @@ namespace Runtime.PlayerSystem
 			}
 		}
 
-		private bool TryTranslateStep(Vector2 offset, out Vector2 wallNormal, ref float distanceToTravel)
+		private bool TryTranslateStep(Vector2 offset,ref float distanceToTravel)
 		{
 			Vector2 absOffset = new Vector2(Mathf.Abs(offset.x), Mathf.Abs(offset.y));
 			bool mayorIsHorizontal = absOffset.x > absOffset.y;
@@ -322,30 +329,28 @@ namespace Runtime.PlayerSystem
 			Vector2 minorDirection = (mayorIsHorizontal ? Vector2.up : Vector2.right) * offset;
 
 			bool didMove = false;
-			TryTranslateStep(mayorDirection, ref distanceToTravel, ref didMove, out Vector2 wallNormalA);
-			TryTranslateStep(minorDirection, ref distanceToTravel, ref didMove, out Vector2 wallNormalB);
-
-			wallNormal = (wallNormalA + wallNormalB).normalized;
+			TryTranslateStep(mayorDirection, ref distanceToTravel, ref didMove);
+			if (minorDirection.magnitude > 0.000001f)
+			{
+				TryTranslateStep(minorDirection, ref distanceToTravel, ref didMove);
+			}
 			
 			return didMove;
 		}
 		
-		private bool TryTranslateStep(Vector2 offset, ref float distanceToTravel, ref bool didMove, out Vector2 wallNormal)
+		private bool TryTranslateStep(Vector2 offset, ref float distanceToTravel, ref bool didMove)
 		{
-			wallNormal = Vector2.zero;
+			//
+			// const float epsilon = (float) 1e-8;
+			// if (Math.Abs(offset.magnitude) < epsilon)
+			// {
+			// 	return false;
+			// }
 			
-			const float epsilon = (float) 1e-8;
-			if (Math.Abs(offset.magnitude) < epsilon)
-			{
-				return false;
-			}
-
 			Vector3 targetPosition = transform.position + (Vector3) offset;
 			bool walkable = GameSurface.Instance.IsWalkableAtWorldPosition(targetPosition);
 			if (!walkable)
 			{
-				wallNormal = GetNormalAtWorldPosition(targetPosition);
-				Debug.DrawRay(transform.position, wallNormal * 3, Color.red);
 				return false;
 			}
 
@@ -363,7 +368,7 @@ namespace Runtime.PlayerSystem
 			distanceToTravel -= offset.magnitude;
 			return true;
 		}
-
+		
 		private Vector2 GetNormalAtWorldPosition(Vector2 targetPosition)
 		{
 			int sampleWidth = 4;
@@ -377,9 +382,10 @@ namespace Runtime.PlayerSystem
 				if (x == 0 && y == 0)
 					continue;
 				Vector2Int gridOffset = new Vector2Int(x, y);
+				
 				if (GameSurface.Instance.IsWalkableAtGridPosition(gridPosition + gridOffset))
 				{
-					wallNormal += ((Vector2) (gridOffset)).normalized;
+					wallNormal += ((Vector2) gridOffset).normalized;
 				}
 			}
 

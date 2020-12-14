@@ -177,7 +177,7 @@ MonoBehaviour:
   _playerType: 0
   _forwardSpeed: 3
   _directionAdjustmentSpeed: 0.6
-  _rotationSpeed: 800
+  _rotationSpeed: 5
   _eatSound: {fileID: 7437117603656591430}
   _characterSelectionSprite: {fileID: 0}
   _selectionAudioClip: {fileID: 0}

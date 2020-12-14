@@ -1,4 +1,7 @@
-﻿using Runtime.GameSurfaceSystem.Jobs;
+﻿using System;
+using System.Collections.Generic;
+using Runtime.Data;
+using Runtime.GameSurfaceSystem.Jobs;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -26,6 +29,7 @@ namespace Runtime.GameSurfaceSystem
 		private NativeArray<bool> _anyNewSurfaceDestroyed;
 		private NativeArray<byte> _validity;
 		private NativeArray<int> _nativeQueueArray;
+		private Queue<IGameSurfaceEvent> _scheduledEvents;
 
 		#endregion
 
@@ -172,6 +176,7 @@ namespace Runtime.GameSurfaceSystem
 
 		public void Cut(Vector2 from, Vector2 to)
 		{
+			throw new NotImplementedException();
 			Vector2Int fromGridPos = GameSurface.WorldSpaceToGrid(from);
 			Vector2Int toGridPos = GameSurface.WorldSpaceToGrid(to);
 
@@ -248,5 +253,12 @@ namespace Runtime.GameSurfaceSystem
 		}
 
 		#endregion
+
+		public void AddEvent(IGameSurfaceEvent data)
+		{
+			//todo
+			//_scheduledEvents.Enqueue(data);
+			data.ScheduleJob(this, default).Complete();
+		}
 	}
 }

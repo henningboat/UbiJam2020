@@ -1,4 +1,5 @@
 ﻿using Photon.Pun;
+using Runtime.Data;
 using Runtime.GameSurfaceSystem.Jobs;
 using Runtime.Utils;
 using Unity.Collections;
@@ -101,30 +102,7 @@ namespace Runtime.GameSurfaceSystem
 			JobHandle syncedStateHandle = _syncronizedState.Simulate();
 
 			JobHandle combinedJobHandle = JobHandle.CombineDependencies(localStateHandle, syncedStateHandle);
-
-			// for (int i = 0; i < _rpcNumberPerNode.Length; i++)
-			// {
-			// 	if (_localState.Surface[i].State != _localStateBackup[i])
-			// 	{
-			// 		_rpcNumberPerNode[i] = _sentRPCNumber;
-			// 	}
-			// }
-
-			// for (int i = 0; i < _rpcNumberPerNode.Length; i++)
-			// {
-			// 	int rpcNumberOfNode = _rpcNumberPerNode[i];
-			// 	if (_receivedRpcNumber >= rpcNumberOfNode)
-			// 	{
-			// 		SurfacePiece surfacePiece = _localState.Surface[i];
-			// 		surfacePiece.State = _syncronizedState.Surface[i].State;
-			// 		_localState.Surface[i] = surfacePiece;
-			// 	}
-			// 	// else
-			// 	// {
-			// 	// 	differenceCount++;
-			// 	// }
-			// }
-
+			
 			JCompareChangesInLocalState jCompare = new JCompareChangesInLocalState
 			                                       {
 				                                       SentRPCNumber = _sentRPCNumber,
@@ -170,8 +148,10 @@ namespace Runtime.GameSurfaceSystem
 
 		public void Cut(Vector2 from, Vector2 to)
 		{
-			_localState.Cut(from, to);
-			_photonView.RPC("RPCCut", RPCSyncMethod, from, to, GetAndIncrementRPCNumber());
+			var data = new GameSurfaceSingleCutEvent(from, to);
+			_localState.AddEvent(data);
+			//_localState.Cut(from, to);
+			_photonView.RPC("RPCCut", RPCSyncMethod, data, GetAndIncrementRPCNumber());
 		}
 
 		public void DestroyCircle(Vector3 explosionPosition, float radius)
@@ -198,14 +178,26 @@ namespace Runtime.GameSurfaceSystem
 			instance.SetMaterial(maskTexture, _renderer.material);
 		}
 
-		public bool IsWalkableAtGridPosition(Vector2Int lastNodePosition)
+		private bool IsPositionDestroyed(Vector2Int gridPosition)
 		{
-			if (InsideSurface(lastNodePosition))
+			if (InsideSurface(gridPosition))
 			{
-				return _combinedSurface[GetIndexAtGridPosition(lastNodePosition)] != SurfaceState.Destroyed;
+				return _combinedSurface[GetIndexAtGridPosition(gridPosition)] == SurfaceState.Destroyed;
 			}
 
-			return false;
+			return true;
+		}
+
+		public bool IsWalkableAtGridPosition(Vector2Int lastNodePosition)
+		{
+			int destroyedCount = 0;
+			if (IsPositionDestroyed(lastNodePosition)) destroyedCount++;
+			if (IsPositionDestroyed(lastNodePosition + Vector2Int.up)) destroyedCount++;
+			if (IsPositionDestroyed(lastNodePosition + Vector2Int.down)) destroyedCount++;
+			if (IsPositionDestroyed(lastNodePosition + Vector2Int.right)) destroyedCount++;
+			if (IsPositionDestroyed(lastNodePosition + Vector2Int.left)) destroyedCount++;
+
+			return destroyedCount <= 2;
 		}
 
 		public bool IsWalkableAtWorldPosition(Vector3 positionWS)
@@ -263,9 +255,9 @@ namespace Runtime.GameSurfaceSystem
 		}
 
 		[PunRPC,]
-		private void RPCCut(Vector2 from, Vector2 to, int rpcNumber, PhotonMessageInfo info)
+		private void RPCCut(GameSurfaceSingleCutEvent eventData, int rpcNumber, PhotonMessageInfo info)
 		{
-			_syncronizedState.Cut(from, to);
+			_syncronizedState.AddEvent(eventData);
 			HandleRPCNumberReceive(rpcNumber, info);
 		}
 
