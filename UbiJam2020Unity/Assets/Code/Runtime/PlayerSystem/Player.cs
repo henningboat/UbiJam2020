@@ -29,7 +29,6 @@ namespace Runtime.PlayerSystem
 		[SerializeField,] private float _forwardSpeed = 2;
 		[SerializeField,] private float _directionAdjustmentSpeed = 2;
 		[SerializeField,] private float _rotationSpeed = 100;
-		[SerializeField,] private bool _allowSliding;
 		[SerializeField,] private AudioSource _eatSound;
 		[SerializeField,] private Sprite _characterSelectionSprite;
 		[SerializeField,] private AudioClip _selectionAudioClip;
@@ -49,6 +48,7 @@ namespace Runtime.PlayerSystem
 		private PhotonView _photonView;
 		private Vector2Int _lastNodePosition;
 		private Vector2Int _currentNodePosition;
+		private Vector3 _lastFramePosition;
 
 		#endregion
 
@@ -82,6 +82,7 @@ namespace Runtime.PlayerSystem
 
 		protected override void Update()
 		{
+			UpdateRotation();
 			if (!_photonView.IsMine)
 			{
 				return;
@@ -101,12 +102,10 @@ namespace Runtime.PlayerSystem
 							_heading = input.DirectionalInput.normalized;
 						}
 
-						transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(Vector3.forward, _heading), _rotationSpeed * Time.deltaTime);
-
 						float speed;
 						if (input.DirectionalInput.magnitude > Mathf.Epsilon)
 						{
-							speed = Mathf.Lerp(_directionAdjustmentSpeed, _forwardSpeed, Vector2.Dot(transform.up, _heading));
+							speed =  _forwardSpeed;
 						}
 						else
 						{
@@ -124,7 +123,7 @@ namespace Runtime.PlayerSystem
 							_cutStartTime = Time.time;
 						}
 
-						TryTranslate(transform.up * (Time.deltaTime * speed));
+						TryTranslate(_heading * (Time.deltaTime * speed));
 
 						if (_cutStartPosition != null)
 						{
@@ -159,6 +158,18 @@ namespace Runtime.PlayerSystem
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
+		}
+
+		private void UpdateRotation()
+		{
+			if (State == PlayerState.Alive)
+			{
+				Vector2 positionDelta = transform.position - _lastFramePosition;
+				Quaternion newRotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(Vector3.forward, positionDelta), _rotationSpeed * Time.deltaTime);
+				transform.rotation = newRotation;
+			}
+
+			_lastFramePosition = transform.position;
 		}
 
 		#endregion
@@ -277,8 +288,6 @@ namespace Runtime.PlayerSystem
 			float distanceToTravel = positionDelta.magnitude;
 			float stepSize = GameSurface.Instance.WorldSpaceGridNodeSize;
 
-			bool? invertMinor = null;
-
 			while (distanceToTravel > 0)
 			{
 				float currentStepSize = Mathf.Min(stepSize, distanceToTravel);
@@ -287,40 +296,15 @@ namespace Runtime.PlayerSystem
 
 				Vector2 offset = direction * currentStepSize;
 
-				Vector2 absOffset = new Vector2(Mathf.Abs(offset.x), Mathf.Abs(offset.y));
-				bool mayorIsHorizontal = absOffset.x > absOffset.y;
+				didMove = TryTranslateStep(offset, out Vector2 wallNormal, ref distanceToTravel);
 
-				Vector2 mayorDirection = (mayorIsHorizontal ? Vector2.right : Vector2.up) * offset;
-				Vector2 minorDirection = (mayorIsHorizontal ? Vector2.up : Vector2.right) * offset;
-
-				TryTranslateStep(mayorDirection, ref distanceToTravel, ref didMove);
-
-				if (!_allowSliding)
+				if (!didMove)
 				{
-					invertMinor = false;
+					Vector2 reflectedOffset = Vector2.Reflect(offset, wallNormal);
+					Debug.DrawRay(transform.position, reflectedOffset.normalized, Color.white);
+					TryTranslateStep(reflectedOffset, out wallNormal, ref distanceToTravel);
 				}
 
-				if (Mathf.Abs(minorDirection.magnitude) > 0.0001f)
-				{
-					if (!invertMinor.HasValue)
-					{
-						invertMinor = TryTranslateStep(minorDirection, ref distanceToTravel, ref didMove) == false;
-
-						if (invertMinor.Value)
-						{
-							TryTranslateStep(-minorDirection, ref distanceToTravel, ref didMove);
-						}
-					}
-					else
-					{
-						if (invertMinor.Value)
-						{
-							minorDirection *= -1;
-						}
-
-						TryTranslateStep(minorDirection, ref distanceToTravel, ref didMove);
-					}
-				}
 
 				if (didMove == false)
 				{
@@ -329,16 +313,39 @@ namespace Runtime.PlayerSystem
 			}
 		}
 
-		private bool TryTranslateStep(Vector2 offset, ref float distanceToTravel, ref bool didMove)
+		private bool TryTranslateStep(Vector2 offset, out Vector2 wallNormal, ref float distanceToTravel)
 		{
-			if (Math.Abs(offset.magnitude) < Mathf.Epsilon)
+			Vector2 absOffset = new Vector2(Mathf.Abs(offset.x), Mathf.Abs(offset.y));
+			bool mayorIsHorizontal = absOffset.x > absOffset.y;
+
+			Vector2 mayorDirection = (mayorIsHorizontal ? Vector2.right : Vector2.up) * offset;
+			Vector2 minorDirection = (mayorIsHorizontal ? Vector2.up : Vector2.right) * offset;
+
+			bool didMove = false;
+			TryTranslateStep(mayorDirection, ref distanceToTravel, ref didMove, out Vector2 wallNormalA);
+			TryTranslateStep(minorDirection, ref distanceToTravel, ref didMove, out Vector2 wallNormalB);
+
+			wallNormal = (wallNormalA + wallNormalB).normalized;
+			
+			return didMove;
+		}
+		
+		private bool TryTranslateStep(Vector2 offset, ref float distanceToTravel, ref bool didMove, out Vector2 wallNormal)
+		{
+			wallNormal = Vector2.zero;
+			
+			const float epsilon = (float) 1e-8;
+			if (Math.Abs(offset.magnitude) < epsilon)
 			{
 				return false;
 			}
 
-			bool walkable = GameSurface.Instance.IsWalkableAtWorldPosition(transform.position + (Vector3) offset);
+			Vector3 targetPosition = transform.position + (Vector3) offset;
+			bool walkable = GameSurface.Instance.IsWalkableAtWorldPosition(targetPosition);
 			if (!walkable)
 			{
+				wallNormal = GetNormalAtWorldPosition(targetPosition);
+				Debug.DrawRay(transform.position, wallNormal * 3, Color.red);
 				return false;
 			}
 
@@ -355,6 +362,28 @@ namespace Runtime.PlayerSystem
 			didMove = true;
 			distanceToTravel -= offset.magnitude;
 			return true;
+		}
+
+		private Vector2 GetNormalAtWorldPosition(Vector2 targetPosition)
+		{
+			int sampleWidth = 4;
+
+			Vector2 wallNormal = Vector2.zero;
+			Vector2Int gridPosition = GameSurface.WorldSpaceToGrid(targetPosition);
+
+			for (int x = -sampleWidth; x < sampleWidth+1; x++)
+			for (int y = -sampleWidth; y < sampleWidth+1; y++)
+			{
+				if (x == 0 && y == 0)
+					continue;
+				Vector2Int gridOffset = new Vector2Int(x, y);
+				if (GameSurface.Instance.IsWalkableAtGridPosition(gridPosition + gridOffset))
+				{
+					wallNormal += ((Vector2) (gridOffset)).normalized;
+				}
+			}
+
+			return wallNormal.normalized;
 		}
 
 		#endregion
