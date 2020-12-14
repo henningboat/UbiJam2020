@@ -55,7 +55,8 @@ namespace Runtime.GameSystem
 			}
 
 			yield return new WaitForSeconds(2);
-			SceneManager.LoadScene(1);
+
+			IsDone = true;
 		}
 
 		private IEnumerator ShowVictoryScreenCoroutine()
@@ -80,8 +81,10 @@ namespace Runtime.GameSystem
 				yield return new WaitForSeconds(5);
 			}
 
-			GameManager.DisconnectAndLoadMenu();
+			IsDone = true;
 		}
+
+		public bool IsDone { get; private set; }
 
 		#endregion
 	}

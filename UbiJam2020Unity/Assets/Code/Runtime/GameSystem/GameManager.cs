@@ -6,7 +6,7 @@ using Photon.Pun;
 using Runtime.PlayerSystem;
 using Runtime.UI;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using Player = Photon.Realtime.Player;
 
 namespace Runtime.GameSystem
 {
@@ -17,8 +17,6 @@ namespace Runtime.GameSystem
 		private static PlayerType[] _selectedPlayerTypes = { PlayerType.PlayerBlue, PlayerType.PlayerYellow, };
 		public static int RoundCount { get; private set; }
 		public static int[] Score { get; set; }
-
-		public bool[] _playerLoaded;
 
 		[RuntimeInitializeOnLoadMethod,]
 		public static void InitializeScore()
@@ -32,6 +30,17 @@ namespace Runtime.GameSystem
 			_selectedPlayerTypes[playerID] = playerType;
 		}
 
+		public static void DisconnectAndLoadMenu()
+		{
+			PhotonNetwork.Disconnect();
+			MainMenuManager.OpenMainMenu(MainMenuOpenReason.PlayerDisconnected);
+		}
+
+		public static void ReloadLevel()
+		{
+			PhotonNetwork.LoadLevel("MainScene");
+		}
+
 		#endregion
 
 		#region Events
@@ -40,55 +49,33 @@ namespace Runtime.GameSystem
 
 		#endregion
 
+		#region Public Fields
+
+		public bool[] _playerLoaded;
+
+		#endregion
+
 		#region Private Fields
 
 		private bool _initialized;
+		private Dictionary<Player, GameState> _confirmedState;
+		private bool _gameIsOver;
 
 		#endregion
 
 		#region Properties
 
 		private int AlivePlayerCount => Players.Count(player => player.State == PlayerState.Alive);
-		protected override GameState InitialState => GameState.InitializeGame;
-		public List<Player> Players { get; private set; } = new List<Player>();
+
+		private bool AllPlayersReceivedState =>
+			_confirmedState.Values.All(state => state == State);
+
+		protected override GameState InitialState => GameState.SceneLoaded;
+		public List<PlayerSystem.Player> Players { get; } = new List<PlayerSystem.Player>();
 
 		#endregion
 
-		#region Public methods
-
-		public bool TryGetDeadPlayer(out Player deadPlayer)
-		{
-			foreach (Player player in Players)
-			{
-				if (player.State == PlayerState.Dead)
-				{
-					deadPlayer = player;
-					return true;
-				}
-			}
-
-			deadPlayer = null;
-			return false;
-		}
-
-		public bool TryGetWinningPlayer(out Player alivePlayer)
-		{
-			foreach (Player player in Players)
-			{
-				if (player.State == PlayerState.Alive)
-				{
-					alivePlayer = player;
-					return true;
-				}
-			}
-
-			alivePlayer = null;
-			return false;
-		}
-
-		#endregion
-
-		#region Protected methods
+		#region Unity methods
 
 		private void Start()
 		{
@@ -102,14 +89,68 @@ namespace Runtime.GameSystem
 				{
 					MainMenuManager.OpenMainMenu(MainMenuOpenReason.SelfDisconnected);
 				}
+
+				return;
+			}
+
+			_confirmedState = new Dictionary<Player, GameState>();
+			foreach (Player player in PhotonNetwork.CurrentRoom.Players.Values)
+			{
+				_confirmedState[player] = GameState.Active;
 			}
 		}
 
-		[PunRPC,]
-		protected override void RPCOnStateChange(byte oldStateByte, byte newStateByte)
+		protected override void Update()
 		{
-			base.RPCOnStateChange(oldStateByte, newStateByte);
+			base.Update();
+			if ((PhotonNetwork.CurrentRoom.PlayerCount < 2) && !Application.isEditor)
+			{
+				DisconnectAndLoadMenu();
+			}
 		}
+
+		#endregion
+
+		#region Public methods
+
+		public bool TryGetDeadPlayer(out PlayerSystem.Player deadPlayer)
+		{
+			foreach (PlayerSystem.Player player in Players)
+			{
+				if (player.State == PlayerState.Dead)
+				{
+					deadPlayer = player;
+					return true;
+				}
+			}
+
+			deadPlayer = null;
+			return false;
+		}
+
+		public bool TryGetWinningPlayer(out PlayerSystem.Player alivePlayer)
+		{
+			foreach (PlayerSystem.Player player in Players)
+			{
+				if (player.State == PlayerState.Alive)
+				{
+					alivePlayer = player;
+					return true;
+				}
+			}
+
+			alivePlayer = null;
+			return false;
+		}
+
+		public void Register(PlayerSystem.Player player)
+		{
+			Players.Add(player);
+		}
+
+		#endregion
+
+		#region Protected methods
 
 		protected override byte StateToByte(GameState state)
 		{
@@ -121,25 +162,19 @@ namespace Runtime.GameSystem
 			return (GameState) state;
 		}
 
-		protected override void Update()
-		{
-			base.Update();
-			if (PhotonNetwork.CurrentRoom.PlayerCount < 2 && !UnityEngine.Application.isEditor)
-			{
-				DisconnectAndLoadMenu();
-			}
-		}
-
-		public static void DisconnectAndLoadMenu()
-		{
-			PhotonNetwork.Disconnect();
-			MainMenuManager.OpenMainMenu(MainMenuOpenReason.PlayerDisconnected);
-		}
-
 		protected override GameState GetNextState()
 		{
 			switch (State)
 			{
+				case GameState.SceneLoaded:
+					return GameState.WaitForOtherPlayers;
+				case GameState.WaitForOtherPlayers:
+					if (AllPlayersReceivedState)
+					{
+						return GameState.InitializeGame;
+					}
+
+					break;
 				case GameState.InitializeGame:
 					if (_initialized)
 					{
@@ -163,6 +198,21 @@ namespace Runtime.GameSystem
 
 					break;
 				case GameState.RoundWon:
+					if (RoundWonScreen.Instance.IsDone)
+					{
+						if (_gameIsOver)
+						{
+							return GameState.LoadMainMenu;
+						}
+						else
+						{
+							return GameState.ReloadLevel;
+						}
+					}
+					break;
+				case GameState.ReloadLevel:
+					break;
+				case GameState.LoadMainMenu:
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
@@ -173,9 +223,14 @@ namespace Runtime.GameSystem
 
 		protected override void OnStateChange(GameState oldState, GameState newState)
 		{
+			PhotonView.RPC("RPCConfirmPlayerState", RpcTarget.MasterClient, newState);
 			Debug.Log("state changed to " + newState);
 			switch (newState)
 			{
+				case GameState.SceneLoaded:
+					break;
+				case GameState.WaitForOtherPlayers:
+					break;
 				case GameState.InitializeGame:
 					StartCoroutine(SpawnPlayers());
 					break;
@@ -187,7 +242,7 @@ namespace Runtime.GameSystem
 				case GameState.RoundWon:
 					for (int i = 0; i < Players.Count; i++)
 					{
-						Player player = Players[i];
+						PlayerSystem.Player player = Players[i];
 						if (player.State == PlayerState.Alive)
 						{
 							Score[player.PlayerID]++;
@@ -197,24 +252,29 @@ namespace Runtime.GameSystem
 
 					RoundCount++;
 
-					bool playerWon = false;
+					_gameIsOver = false;
 					for (int i = 0; i < Score.Length; i++)
 					{
 						if (Score[i] >= GameSettings.Instance.RoundsToWin)
 						{
 							RoundWonScreen.Instance.ShowVictoryScreen();
-							playerWon = true;
+							_gameIsOver = true;
 						}
 					}
 
-					if (playerWon == false)
+					if (_gameIsOver == false)
 					{
 						for (int i = 0; i < Score.Length; i++)
 						{
 							RoundWonScreen.Instance.ShowKOScreen();
 						}
 					}
-
+					break;
+				case GameState.LoadMainMenu:
+					DisconnectAndLoadMenu();
+					break;
+				case GameState.ReloadLevel:
+					ReloadLevel();
 					break;
 				default:
 					throw new ArgumentOutOfRangeException(nameof(newState), newState, null);
@@ -229,24 +289,39 @@ namespace Runtime.GameSystem
 		{
 			yield return null;
 			PhotonNetwork.Instantiate(_selectedPlayerTypes[0].ToString(), PlayerSpawnPoints.Instance.GetForPlayer(PhotonNetwork.LocalPlayer.ActorNumber - 1).position, Quaternion.identity);
-			
+
 			_initialized = true;
 		}
 
 		#endregion
 
-		public void Register(Player player)
+		#region RPC
+
+		[PunRPC,]
+		private void RPCConfirmPlayerState(GameState state, PhotonMessageInfo info)
 		{
-			Players.Add(player);
+			Debug.Log($"state {state} confirmed for player {info.Sender}");
+			_confirmedState[info.Sender] = state;
 		}
+
+		[PunRPC,]
+		protected override void RPCOnStateChange(byte oldStateByte, byte newStateByte)
+		{
+			base.RPCOnStateChange(oldStateByte, newStateByte);
+		}
+
+		#endregion
 	}
 
 	public enum GameState
 	{
+		SceneLoaded,
 		WaitForOtherPlayers,
 		InitializeGame,
 		Intro,
 		Active,
 		RoundWon,
+		ReloadLevel,
+		LoadMainMenu,
 	}
 }
