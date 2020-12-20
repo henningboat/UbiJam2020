@@ -40,7 +40,7 @@ namespace Runtime.UI
 
 		#region Private Fields
 
-		private List<CharacterSelectionScreen> _characterSelectionScreens;
+		private List<CharacterSelectionPanel> _characterSelectionScreens;
 
 		#endregion
 
@@ -59,7 +59,7 @@ namespace Runtime.UI
 			{
 				Lobby.Instance.ConnectOffline();
 			}
-			_characterSelectionScreens = FindObjectsOfType<CharacterSelectionScreen>().ToList();
+			_characterSelectionScreens = FindObjectsOfType<CharacterSelectionPanel>().ToList();
 		}
 
 		#endregion

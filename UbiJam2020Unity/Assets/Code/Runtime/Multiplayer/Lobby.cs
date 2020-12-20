@@ -1,5 +1,7 @@
 ﻿using Photon.Pun;
 using Photon.Realtime;
+using Runtime.GameSystem;
+using Runtime.SaveDataSystem;
 using UnityEngine;
 
 namespace Runtime.Multiplayer
@@ -12,7 +14,7 @@ namespace Runtime.Multiplayer
 
 		private static void CheckRoomJoined()
 		{
-			if (PhotonNetwork.IsMasterClient && ((PhotonNetwork.CurrentRoom.PlayerCount == 2) || Application.isEditor))
+			if (PhotonNetwork.IsMasterClient && ((PhotonNetwork.CurrentRoom.PlayerCount == GameManager.PlayerCount) || Application.isEditor))
 			{
 				PhotonNetwork.CurrentRoom.IsOpen = false;
 				PhotonNetwork.LoadLevel("MainScene");
@@ -34,6 +36,7 @@ namespace Runtime.Multiplayer
 
 		public void Connect()
 		{
+			PhotonNetwork.NickName = SaveData.NickName;
 			PhotonNetwork.AutomaticallySyncScene = true;
 			PhotonNetwork.ConnectUsingSettings();
 		}
@@ -41,7 +44,7 @@ namespace Runtime.Multiplayer
 		public override void OnConnectedToMaster()
 		{
 			RoomOptions roomOptions = new RoomOptions();
-			roomOptions.MaxPlayers = 2;
+			roomOptions.MaxPlayers = GameManager.PlayerCount;
 			EnterRoomParams enterRoomParams = new EnterRoomParams();
 			enterRoomParams.RoomOptions = roomOptions;
 			PhotonNetwork.JoinOrCreateRoom("DefaultRoom", roomOptions, TypedLobby.Default);
@@ -59,12 +62,12 @@ namespace Runtime.Multiplayer
 			CheckRoomJoined();
 		}
 
-		#endregion
-
 		public void ConnectOffline()
 		{
 			PhotonNetwork.OfflineMode = true;
 			Connect();
 		}
+
+		#endregion
 	}
 }

@@ -18,10 +18,12 @@ namespace Runtime.GameSystem
 		public static int RoundCount { get; private set; }
 		public static int[] Score { get; set; }
 
+public const int PlayerCount = 5;
+
 		[RuntimeInitializeOnLoadMethod,]
 		public static void InitializeScore()
 		{
-			Score = new int[2];
+			Score = new int[PlayerCount];
 			RoundCount = 0;
 		}
 
@@ -103,7 +105,7 @@ namespace Runtime.GameSystem
 		protected override void Update()
 		{
 			base.Update();
-			if ((PhotonNetwork.CurrentRoom.PlayerCount < 2) && !Application.isEditor)
+			if ((PhotonNetwork.CurrentRoom.PlayerCount < PlayerCount) && !Application.isEditor)
 			{
 				DisconnectAndLoadMenu();
 			}
@@ -191,7 +193,7 @@ namespace Runtime.GameSystem
 					break;
 				case GameState.Active:
 
-					if (Players.Any(player => player.State == PlayerState.Dead))
+					if (AlivePlayerCount<=1)
 					{
 						return GameState.RoundWon;
 					}
