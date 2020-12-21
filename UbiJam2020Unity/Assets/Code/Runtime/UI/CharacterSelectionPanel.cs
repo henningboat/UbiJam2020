@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using DG.Tweening;
 using Runtime.GameSystem;
 using Runtime.InputSystem;
 using Runtime.PlayerSystem;
 using UnityEngine;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 namespace Runtime.UI
 {
@@ -18,25 +20,25 @@ namespace Runtime.UI
 		[SerializeField,] private Image _rightArrow;
 		[SerializeField,] private AudioSource _leftArrowAudioSource;
 		[SerializeField,] private AudioSource _rightArrowAudioSource;
-		
 		[SerializeField,] private AudioSource _characterVoice;
+		[SerializeField,] private float _scaleOutSize = 0.8f;
+		[SerializeField,] private Color _scaleOutColor = Color.gray;
 
 		#endregion
 
 		#region Private Fields
 
 		private bool _locked;
-		private float _lastInputTime;
+		private float _nextInputAllowedTime;
 		private List<Player> _allPlayers;
 		private int _currentSelection;
-		[SerializeField] private float _scaleOutSize=0.8f;
-		[SerializeField] private Color _scaleOutColor=Color.gray;
 
 		#endregion
 
 		#region Properties
 
 		public bool SelectionDone { get; private set; }
+		public PlayerType SelectedCharacter { get; private set; }
 
 		#endregion
 
@@ -49,17 +51,23 @@ namespace Runtime.UI
 			UpdateSelection();
 		}
 
-		void Update()
+		private void OnEnable()
 		{
-			if ((MainMenuManager.Instance.State == MainMenuState.CharacterSelection) && (Time.time - _lastInputTime > 0.2f) && (Time.time-MainMenuManager.Instance.CharacterScreenOpenedTime)>1)
+			_nextInputAllowedTime = Time.time + 0.5f;
+			SelectionDone = false;
+		}
+
+		private void Update()
+		{
+			if (Time.time - _nextInputAllowedTime > 0)
 			{
-				var input = PlayerInputManager.Instance.GetInputForPlayer(_playerID);
+				PlayerInput input = PlayerInputManager.Instance.GetInputForPlayer(_playerID);
 
 				if (input.Eat)
 				{
-					_lastInputTime = float.MaxValue;
+					_nextInputAllowedTime = float.MaxValue;
 					Player character = _allPlayers[_currentSelection];
-					GameManager.SetCharacterSelection(_playerID,character.PlayerType);
+					SelectedCharacter = character.PlayerType;
 					SelectionDone = true;
 					_leftArrow.enabled = false;
 					_rightArrow.enabled = false;
@@ -93,7 +101,7 @@ namespace Runtime.UI
 		{
 			_currentSelection = (_currentSelection + _allPlayers.Count) % _allPlayers.Count;
 			_mainImage.sprite = _allPlayers[_currentSelection].CharacterSelectionSprite;
-			_lastInputTime = Time.time;
+			_nextInputAllowedTime = Time.time + 0.2f;
 		}
 
 		#endregion

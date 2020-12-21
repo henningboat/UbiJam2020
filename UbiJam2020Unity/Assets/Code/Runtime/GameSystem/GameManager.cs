@@ -3,9 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Photon.Pun;
+using Photon.Realtime;
 using Runtime.PlayerSystem;
 using Runtime.UI;
 using UnityEngine;
+using Hashtable = ExitGames.Client.Photon.Hashtable;
 using Player = Photon.Realtime.Player;
 
 namespace Runtime.GameSystem
@@ -14,22 +16,16 @@ namespace Runtime.GameSystem
 	{
 		#region Static Stuff
 
-		private static PlayerType[] _selectedPlayerTypes = { PlayerType.PlayerBlue, PlayerType.PlayerYellow, };
+//read from config
+		public static int PlayerCount = 2;
 		public static int RoundCount { get; private set; }
 		public static int[] Score { get; set; }
-
-public const int PlayerCount = 5;
 
 		[RuntimeInitializeOnLoadMethod,]
 		public static void InitializeScore()
 		{
-			Score = new int[PlayerCount];
+			Score = new int[8];
 			RoundCount = 0;
-		}
-
-		public static void SetCharacterSelection(int playerID, PlayerType playerType)
-		{
-			_selectedPlayerTypes[playerID] = playerType;
 		}
 
 		public static void DisconnectAndLoadMenu()
@@ -193,7 +189,7 @@ public const int PlayerCount = 5;
 					break;
 				case GameState.Active:
 
-					if (AlivePlayerCount<=1)
+					if (AlivePlayerCount <= 1)
 					{
 						return GameState.RoundWon;
 					}
@@ -206,11 +202,10 @@ public const int PlayerCount = 5;
 						{
 							return GameState.LoadMainMenu;
 						}
-						else
-						{
-							return GameState.ReloadLevel;
-						}
+
+						return GameState.ReloadLevel;
 					}
+
 					break;
 				case GameState.ReloadLevel:
 					break;
@@ -271,6 +266,7 @@ public const int PlayerCount = 5;
 							RoundWonScreen.Instance.ShowKOScreen();
 						}
 					}
+
 					break;
 				case GameState.LoadMainMenu:
 					DisconnectAndLoadMenu();
@@ -290,7 +286,8 @@ public const int PlayerCount = 5;
 		private IEnumerator SpawnPlayers()
 		{
 			yield return null;
-			PhotonNetwork.Instantiate(_selectedPlayerTypes[0].ToString(), PlayerSpawnPoints.Instance.GetForPlayer(PhotonNetwork.LocalPlayer.ActorNumber - 1).position, Quaternion.identity);
+			throw new NotImplementedException();
+//			PhotonNetwork.Instantiate(_selectedPlayerTypes[0].ToString(), PlayerSpawnPoints.Instance.GetForPlayer(PhotonNetwork.LocalPlayer.ActorNumber - 1).position, Quaternion.identity);
 
 			_initialized = true;
 		}
@@ -302,7 +299,6 @@ public const int PlayerCount = 5;
 		[PunRPC,]
 		private void RPCConfirmPlayerState(GameState state, PhotonMessageInfo info)
 		{
-			Debug.Log($"state {state} confirmed for player {info.Sender}");
 			_confirmedState[info.Sender] = state;
 		}
 
@@ -325,5 +321,62 @@ public const int PlayerCount = 5;
 		RoundWon,
 		ReloadLevel,
 		LoadMainMenu,
+	}
+
+	public class GameConfiguration
+	{
+		#region Static Stuff
+
+		public const byte RoundsToWinByte = 0;
+		public const byte PlayerCountByte = 1;
+
+		public static GameConfiguration GetConfigurationFromRoomProperties(Room room)
+		{
+			byte roundsToWin = (byte) room.CustomProperties[RoundsToWinByte];
+			byte playerCount = (byte) room.CustomProperties[PlayerCountByte];
+			return new GameConfiguration(playerCount, roundsToWin);
+		}
+
+		/// <summary>
+		/// For random online matches, we force a specific Game Configuration. The goal is that if
+		/// two players search for a match online at the same time (which is unlikely), they should always
+		/// bet matched together
+		/// </summary>
+		/// <returns></returns>
+		public static GameConfiguration RandomOnlineMatch()
+		{
+			return new GameConfiguration(2, 7);
+		}
+
+		#endregion
+
+		#region Properties
+
+		public byte PlayerCount { get; }
+		public byte RoundsToWin { get; }
+
+		#endregion
+
+		#region Constructors
+
+		public GameConfiguration(byte playerCount, byte roundsToWin)
+		{
+			PlayerCount = playerCount;
+			RoundsToWin = roundsToWin;
+		}
+
+		#endregion
+
+		#region Public methods
+
+		public Hashtable GetRoomProperties()
+		{
+			Hashtable roomProperties = new Hashtable();
+			roomProperties.Add(RoundsToWinByte, RoundsToWin);
+			roomProperties.Add(PlayerCountByte, PlayerCount);
+			return roomProperties;
+		}
+
+		#endregion
 	}
 }

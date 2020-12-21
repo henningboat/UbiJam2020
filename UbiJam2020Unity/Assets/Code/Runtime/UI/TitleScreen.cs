@@ -11,6 +11,9 @@ namespace Runtime.UI
 
 		[SerializeField,] private Button _invisibleButton;
 		[SerializeField,] private PlayableDirector _titleScreenTimeline;
+		[SerializeField,] private AudioSource _titleScreenClosedAudio;
+		[SerializeField,] private AudioSource _titleScreenAudio;
+		[SerializeField,] private AudioSource _mainMenuAudio;
 
 		#endregion
 
@@ -43,6 +46,8 @@ namespace Runtime.UI
 		{
 			_titleScreenTimelineFinishedAction = action;
 			_titleScreenTimeline.Play();
+			_titleScreenClosedAudio.Play();
+			_titleScreenAudio.Stop();
 		}
 
 		#endregion
@@ -52,6 +57,7 @@ namespace Runtime.UI
 		private void TimelineStopped(PlayableDirector obj)
 		{
 			base.Hide(_titleScreenTimelineFinishedAction);
+			_mainMenuAudio.Play();
 		}
 
 		#endregion
@@ -62,6 +68,7 @@ namespace Runtime.UI
 		{
 			base.Show();
 			_titleScreenTimeline.Stop();
+			_titleScreenAudio.Play();
 		}
 
 		#endregion

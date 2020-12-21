@@ -11,6 +11,7 @@ namespace Runtime.UI
 		#region Serialize Fields
 
 		[SerializeField,] private TMP_InputField _nameInput;
+		private IMainMenuScreenBase _nextScreen;
 
 		#endregion
 
@@ -28,7 +29,15 @@ namespace Runtime.UI
 			if (arg0.Length > 0)
 			{
 				SaveData.SetNickName(arg0);
-				TransitionToScreen(MainMenuScreen.Instance);
+				if (_nextScreen != null)
+				{
+					TransitionToScreen(_nextScreen);
+					_nextScreen = null;
+				}
+				else
+				{
+					TransitionToScreen(MainMenuScreen.Instance);
+				}
 			}
 			else
 			{
@@ -51,5 +60,10 @@ namespace Runtime.UI
 		}
 
 		#endregion
+
+		public void SetScreenAfterNickNameEntered(IMainMenuScreenBase nextScreen)
+		{
+			_nextScreen = nextScreen;
+		}
 	}
 }

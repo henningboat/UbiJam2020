@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using Runtime.GameSystem;
+using Runtime.Multiplayer;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace Runtime.UI
@@ -7,6 +9,8 @@ namespace Runtime.UI
 	{
 		#region Serialize Fields
 
+		[SerializeField,] private Button _localMultiplayerButton;
+		[SerializeField,] private Button _joinOnlineMatchButton;
 		[SerializeField,] private Button _changeNickNameScreenButton;
 
 		#endregion
@@ -17,11 +21,20 @@ namespace Runtime.UI
 		{
 			base.Awake();
 			_changeNickNameScreenButton.onClick.AddListener(OnChangeNickName);
+			_joinOnlineMatchButton.onClick.AddListener(JoinOnlineMatch);
 		}
 
 		#endregion
 
 		#region Private methods
+
+		private void JoinOnlineMatch()
+		{
+			GameStartParameters startGameParameters = new GameStartParameters(GameStartParameters.GameStartType.JoinRandomMatch);
+			startGameParameters.GameConfiguration=GameConfiguration.RandomOnlineMatch();
+			MainMenuManager.Instance.GameStartParameters = startGameParameters;
+			TransitionToScreen(CharacterSelectionScreen.Instance, true);
+		}
 
 		private void OnChangeNickName()
 		{

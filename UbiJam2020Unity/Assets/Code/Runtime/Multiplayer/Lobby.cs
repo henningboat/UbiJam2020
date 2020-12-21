@@ -1,8 +1,10 @@
-﻿using Photon.Pun;
+﻿using System;
+using Photon.Pun;
 using Photon.Realtime;
 using Runtime.GameSystem;
 using Runtime.SaveDataSystem;
 using UnityEngine;
+using Player = Photon.Realtime.Player;
 
 namespace Runtime.Multiplayer
 {
@@ -14,12 +16,18 @@ namespace Runtime.Multiplayer
 
 		private static void CheckRoomJoined()
 		{
-			if (PhotonNetwork.IsMasterClient && ((PhotonNetwork.CurrentRoom.PlayerCount == GameManager.PlayerCount) || Application.isEditor))
+			if (PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom.PlayerCount == PhotonNetwork.CurrentRoom.MaxPlayers)
 			{
 				PhotonNetwork.CurrentRoom.IsOpen = false;
 				PhotonNetwork.LoadLevel("MainScene");
 			}
 		}
+
+		#endregion
+
+		#region Private Fields
+
+		private GameStartParameters _startParameters;
 
 		#endregion
 
@@ -34,20 +42,38 @@ namespace Runtime.Multiplayer
 
 		#region Public methods
 
-		public void Connect()
+		public void Connect(GameStartParameters startParameters)
 		{
+			_startParameters = startParameters;
 			PhotonNetwork.NickName = SaveData.NickName;
 			PhotonNetwork.AutomaticallySyncScene = true;
+			PhotonNetwork.OfflineMode = _startParameters.Type == GameStartParameters.GameStartType.LocalMultiplayer;
+
 			PhotonNetwork.ConnectUsingSettings();
 		}
 
 		public override void OnConnectedToMaster()
 		{
-			RoomOptions roomOptions = new RoomOptions();
-			roomOptions.MaxPlayers = GameManager.PlayerCount;
-			EnterRoomParams enterRoomParams = new EnterRoomParams();
-			enterRoomParams.RoomOptions = roomOptions;
-			PhotonNetwork.JoinOrCreateRoom("DefaultRoom", roomOptions, TypedLobby.Default);
+			switch (_startParameters.Type)
+			{
+				case GameStartParameters.GameStartType.LocalMultiplayer:
+					PhotonNetwork.CreateRoom("", _startParameters.GetRoomOptions());
+					break;
+				case GameStartParameters.GameStartType.HostPrivateMatch:
+					PhotonNetwork.CreateRoom(_startParameters.GameCode, _startParameters.GetRoomOptions());
+					break;
+				case GameStartParameters.GameStartType.JoinPrivateMatch:
+					PhotonNetwork.JoinRoom(_startParameters.GameCode);
+					break;
+				case GameStartParameters.GameStartType.JoinRandomMatch:
+					PhotonNetwork.JoinOrCreateRoom("Public Match", _startParameters.GetRoomOptions(), TypedLobby.Default);
+					break;
+				case GameStartParameters.GameStartType.DebugSinglePlayer:
+					PhotonNetwork.JoinOrCreateRoom("DebugMatch", _startParameters.GetRoomOptions(), TypedLobby.Default);
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
 		}
 
 		public override void OnJoinedRoom()
@@ -64,8 +90,7 @@ namespace Runtime.Multiplayer
 
 		public void ConnectOffline()
 		{
-			PhotonNetwork.OfflineMode = true;
-			Connect();
+			Lobby.Instance.Connect(GameStartParameters.ConnectDebugSinglePlayerMatch());
 		}
 
 		#endregion

@@ -1,5 +1,6 @@
 ﻿using System;
 using DG.Tweening;
+using Runtime.SaveDataSystem;
 using Runtime.Utils;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -18,12 +19,14 @@ namespace Runtime.UI
 		#region Private Fields
 
 		private CanvasGroup _canvasGroup;
+		private GameObject _lastSelection;
 
 		#endregion
 
 		#region Properties
 
 		protected virtual bool FirstScreen => false;
+		protected bool Interactable => _canvasGroup.interactable;
 
 		#endregion
 
@@ -37,7 +40,7 @@ namespace Runtime.UI
 
 			_canvasGroup.alpha = 0;
 			_canvasGroup.interactable = false;
-			
+
 			if (FirstScreen)
 			{
 				Show();
@@ -54,7 +57,18 @@ namespace Runtime.UI
 			_canvasGroup.DOFade(1, 0.1f).OnComplete(() =>
 			                                        {
 				                                        _canvasGroup.interactable = true;
-				                                        EventSystem.current.SetSelectedGameObject(_defaultSelection);
+
+				                                        GameObject selection;
+				                                        if (_lastSelection != null)
+				                                        {
+					                                        selection = _lastSelection;
+				                                        }
+				                                        else
+				                                        {
+					                                        selection = _defaultSelection;
+				                                        }
+
+				                                        EventSystem.current.SetSelectedGameObject(selection);
 			                                        });
 		}
 
@@ -62,14 +76,23 @@ namespace Runtime.UI
 
 		#region Protected methods
 
-		protected void TransitionToScreen(IMainMenuScreenBase nextScreen)
+		protected void TransitionToScreen(IMainMenuScreenBase nextScreen, bool requireOnlineUsernameSet = false)
 		{
 			_canvasGroup.interactable = false;
-			Hide(nextScreen.Show);
+			if (requireOnlineUsernameSet && !SaveData.HasNickName)
+			{
+				EnterNickNameScreen.Instance.SetScreenAfterNickNameEntered(nextScreen);
+				TransitionToScreen(EnterNickNameScreen.Instance);
+			}
+			else
+			{
+				Hide(nextScreen.Show);
+			}
 		}
 
 		protected virtual void Hide(Action action)
 		{
+			_lastSelection = EventSystem.current.currentSelectedGameObject;
 			_canvasGroup.interactable = false;
 			_canvasGroup.blocksRaycasts = false;
 			_canvasGroup.DOFade(0, 0.1f).OnComplete(() => { action(); });
