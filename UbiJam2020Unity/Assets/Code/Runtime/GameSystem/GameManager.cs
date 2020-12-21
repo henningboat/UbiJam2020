@@ -3,11 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Photon.Pun;
-using Photon.Realtime;
+using Runtime.Data;
+using Runtime.Multiplayer;
 using Runtime.PlayerSystem;
 using Runtime.UI;
 using UnityEngine;
-using Hashtable = ExitGames.Client.Photon.Hashtable;
 using Player = Photon.Realtime.Player;
 
 namespace Runtime.GameSystem
@@ -16,8 +16,6 @@ namespace Runtime.GameSystem
 	{
 		#region Static Stuff
 
-//read from config
-		public static int PlayerCount = 2;
 		public static int RoundCount { get; private set; }
 		public static int[] Score { get; set; }
 
@@ -69,7 +67,9 @@ namespace Runtime.GameSystem
 			_confirmedState.Values.All(state => state == State);
 
 		protected override GameState InitialState => GameState.SceneLoaded;
+		public int PlayerCount => GameConfiguration.PlayerCount;
 		public List<PlayerSystem.Player> Players { get; } = new List<PlayerSystem.Player>();
+		public GameConfiguration GameConfiguration { get; private set; }
 
 		#endregion
 
@@ -91,11 +91,18 @@ namespace Runtime.GameSystem
 				return;
 			}
 
+			GameConfiguration = GameConfiguration.GetConfigurationFromRoomProperties(PhotonNetwork.CurrentRoom);
+
 			_confirmedState = new Dictionary<Player, GameState>();
 			foreach (Player player in PhotonNetwork.CurrentRoom.Players.Values)
 			{
 				_confirmedState[player] = GameState.Active;
 			}
+		}
+
+		public void RegisterPlayer(PlayerSystem.Player player)
+		{
+			Players.Add(player);
 		}
 
 		protected override void Update()
@@ -141,9 +148,19 @@ namespace Runtime.GameSystem
 			return false;
 		}
 
-		public void Register(PlayerSystem.Player player)
+		public string GetDisplayNameForPlayer(PlayerIdentifier playerIdentifier)
 		{
-			Players.Add(player);
+			string displayName;
+			if (GameConfiguration.IsLocalMultiplayer)
+			{
+				displayName = $"Player {playerIdentifier.LocalPlayerID + 1}";
+			}
+			else
+			{
+				displayName = PhotonNetwork.CurrentRoom.Players[playerIdentifier.LocalPlayerID].NickName;
+			}
+
+			return displayName;
 		}
 
 		#endregion
@@ -221,7 +238,6 @@ namespace Runtime.GameSystem
 		protected override void OnStateChange(GameState oldState, GameState newState)
 		{
 			PhotonView.RPC("RPCConfirmPlayerState", RpcTarget.MasterClient, newState);
-			Debug.Log("state changed to " + newState);
 			switch (newState)
 			{
 				case GameState.SceneLoaded:
@@ -237,16 +253,6 @@ namespace Runtime.GameSystem
 
 					break;
 				case GameState.RoundWon:
-					for (int i = 0; i < Players.Count; i++)
-					{
-						PlayerSystem.Player player = Players[i];
-						if (player.State == PlayerState.Alive)
-						{
-							Score[player.PlayerID]++;
-							OnVictory?.Invoke(player.PlayerID);
-						}
-					}
-
 					RoundCount++;
 
 					_gameIsOver = false;
@@ -286,8 +292,13 @@ namespace Runtime.GameSystem
 		private IEnumerator SpawnPlayers()
 		{
 			yield return null;
-			throw new NotImplementedException();
-//			PhotonNetwork.Instantiate(_selectedPlayerTypes[0].ToString(), PlayerSpawnPoints.Instance.GetForPlayer(PhotonNetwork.LocalPlayer.ActorNumber - 1).position, Quaternion.identity);
+			List<PlayerType> localPlayers = GameStartParameters.GetLocallySelectedPlayersFromPlayerProperties(PhotonNetwork.LocalPlayer.CustomProperties);
+			for (int i = 0; i < localPlayers.Count; i++)
+			{
+				PlayerIdentifier playerIdentifier = new PlayerIdentifier(PhotonNetwork.LocalPlayer.ActorNumber, i);
+				PlayerType localPlayer = localPlayers[i];
+				PhotonNetwork.Instantiate(localPlayer.ToString(), PlayerSpawnPoints.Instance.GetForPlayer(PhotonNetwork.LocalPlayer.ActorNumber - 1).position, Quaternion.identity, 0, new[] { playerIdentifier, });
+			}
 
 			_initialized = true;
 		}
@@ -323,60 +334,10 @@ namespace Runtime.GameSystem
 		LoadMainMenu,
 	}
 
-	public class GameConfiguration
+	[Flags,]
+	public enum GameConfigurationFlags : byte
 	{
-		#region Static Stuff
-
-		public const byte RoundsToWinByte = 0;
-		public const byte PlayerCountByte = 1;
-
-		public static GameConfiguration GetConfigurationFromRoomProperties(Room room)
-		{
-			byte roundsToWin = (byte) room.CustomProperties[RoundsToWinByte];
-			byte playerCount = (byte) room.CustomProperties[PlayerCountByte];
-			return new GameConfiguration(playerCount, roundsToWin);
-		}
-
-		/// <summary>
-		/// For random online matches, we force a specific Game Configuration. The goal is that if
-		/// two players search for a match online at the same time (which is unlikely), they should always
-		/// bet matched together
-		/// </summary>
-		/// <returns></returns>
-		public static GameConfiguration RandomOnlineMatch()
-		{
-			return new GameConfiguration(2, 7);
-		}
-
-		#endregion
-
-		#region Properties
-
-		public byte PlayerCount { get; }
-		public byte RoundsToWin { get; }
-
-		#endregion
-
-		#region Constructors
-
-		public GameConfiguration(byte playerCount, byte roundsToWin)
-		{
-			PlayerCount = playerCount;
-			RoundsToWin = roundsToWin;
-		}
-
-		#endregion
-
-		#region Public methods
-
-		public Hashtable GetRoomProperties()
-		{
-			Hashtable roomProperties = new Hashtable();
-			roomProperties.Add(RoundsToWinByte, RoundsToWin);
-			roomProperties.Add(PlayerCountByte, PlayerCount);
-			return roomProperties;
-		}
-
-		#endregion
+		None = 0,
+		IsLocalMultiplayer = 1 << 0,
 	}
 }

@@ -13,12 +13,11 @@ namespace Runtime.Data
 
 		private const byte RadiusBitMask = 127;
 		private const byte HealSurfaceBitMask = 128;
-		private const byte SerializationTypeID = 1;
 
 		[RuntimeInitializeOnLoadMethod,]
 		private static void InitializeSerialization()
 		{
-			PhotonPeer.RegisterType(typeof(GameSurfaceCircleEvent), SerializationTypeID, Serialize, Deserialize);
+			PhotonPeer.RegisterType(typeof(GameSurfaceCircleEvent), CustomSerializationIDs.GameSurfaceCircleEventID, Serialize, Deserialize);
 		}
 
 		public static object Deserialize(byte[] data)

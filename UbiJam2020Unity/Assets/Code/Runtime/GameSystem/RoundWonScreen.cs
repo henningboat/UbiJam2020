@@ -65,7 +65,7 @@ namespace Runtime.GameSystem
 			Player player = null;
 			if (GameManager.Instance.TryGetWinningPlayer(out player))
 			{
-				_playerVictory.sprite = player.PlayerID == 0 ? _player0Sprite : _player1Sprite;
+				//_playerVictory.sprite = player.PlayerID == 0 ? _player0Sprite : _player1Sprite;
 
 				Vector3 targetPosition = player.transform.position;
 				targetPosition.z = Camera.main.transform.position.z + _zoomIn;

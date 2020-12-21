@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using ExitGames.Client.Photon;
 using Photon.Realtime;
 using Runtime.GameSystem;
 using Runtime.PlayerSystem;
@@ -22,12 +24,14 @@ namespace Runtime.Multiplayer
 
 		#region Static Stuff
 
+		private const string LocallySelectedPlayersList = "P";
+
 		public static GameStartParameters ConnectDebugSinglePlayerMatch()
 		{
 			return new GameStartParameters(GameStartType.DebugSinglePlayer)
 			       {
-				       LocallySelectedCharacters = new List<PlayerType> { PlayerType.PlayerBlue, },
-				       GameConfiguration = new GameConfiguration(1, 3),
+				       LocallySelectedCharacters = new List<PlayerType> { PlayerType.PlayerBlue, PlayerType.PlayerPink, },
+				       GameConfiguration = new GameConfiguration(2, 3, GameConfigurationFlags.IsLocalMultiplayer),
 			       };
 		}
 
@@ -62,7 +66,15 @@ namespace Runtime.Multiplayer
 		{
 			RoomOptions options = new RoomOptions();
 			options.IsVisible = Type == GameStartType.JoinRandomMatch;
-			options.MaxPlayers = GameConfiguration.PlayerCount;
+			if (Type == GameStartType.DebugSinglePlayer)
+			{
+				options.MaxPlayers = 1;
+			}
+			else
+			{
+				options.MaxPlayers = GameConfiguration.PlayerCount;
+			}
+
 			options.CustomRoomProperties = GameConfiguration.GetRoomProperties();
 			return options;
 		}
@@ -72,6 +84,20 @@ namespace Runtime.Multiplayer
 			LocallySelectedCharacters = toList;
 		}
 
+		public Hashtable GetLocalPlayerCustomProperties()
+		{
+			return new Hashtable
+			       {
+				       [LocallySelectedPlayersList] = LocallySelectedCharacters.Select(type => (byte) type).ToArray(),
+			       };
+		}
+
 		#endregion
+
+		public static List<PlayerType> GetLocallySelectedPlayersFromPlayerProperties(Hashtable localPlayerCustomProperties)
+		{
+			byte[] localPlayerCustomProperty = (byte[]) (localPlayerCustomProperties[LocallySelectedPlayersList]);
+			return localPlayerCustomProperty.Select(b => (PlayerType) b).ToList();
+		}
 	}
 }

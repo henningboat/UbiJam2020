@@ -1,5 +1,4 @@
 ﻿using ExitGames.Client.Photon;
-using Photon.Pun;
 using Runtime.GameSurfaceSystem;
 using Runtime.GameSurfaceSystem.Jobs;
 using Unity.Jobs;
@@ -8,16 +7,14 @@ using UnityEngine;
 
 namespace Runtime.Data
 {
-	public class GameSurfaceSingleCutEvent: IGameSurfaceEvent
+	public class GameSurfaceSingleCutEvent : IGameSurfaceEvent
 	{
 		#region Static Stuff
-
-		private const byte SerializationTypeID = 0;
 
 		[RuntimeInitializeOnLoadMethod,]
 		private static void InitializeSerialization()
 		{
-			PhotonPeer.RegisterType(typeof(GameSurfaceSingleCutEvent), SerializationTypeID, Serialize, Deserialize);
+			PhotonPeer.RegisterType(typeof(GameSurfaceSingleCutEvent), CustomSerializationIDs.GameSurfaceSingleCutEvent, Serialize, Deserialize);
 		}
 
 		public static object Deserialize(byte[] data)
@@ -33,7 +30,7 @@ namespace Runtime.Data
 
 		private static byte[] Serialize(object customType)
 		{
-			var gameSurfaceSingleCutEvent = (GameSurfaceSingleCutEvent) customType;
+			GameSurfaceSingleCutEvent gameSurfaceSingleCutEvent = (GameSurfaceSingleCutEvent) customType;
 			return new[]
 			       {
 				       gameSurfaceSingleCutEvent._fromX,
@@ -72,7 +69,7 @@ namespace Runtime.Data
 
 		#endregion
 
-		#region Public methods
+		#region IGameSurfaceEvent Members
 
 		public JobHandle ScheduleJob(GameSurfaceState state, JobHandle dependencies)
 		{
@@ -87,8 +84,13 @@ namespace Runtime.Data
 
 		#endregion
 	}
+
 	public interface IGameSurfaceEvent
 	{
+		#region Public methods
+
 		JobHandle ScheduleJob(GameSurfaceState state, JobHandle dependencies);
+
+		#endregion
 	}
 }

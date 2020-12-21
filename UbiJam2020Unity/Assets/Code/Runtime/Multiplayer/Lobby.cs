@@ -47,8 +47,9 @@ namespace Runtime.Multiplayer
 			_startParameters = startParameters;
 			PhotonNetwork.NickName = SaveData.NickName;
 			PhotonNetwork.AutomaticallySyncScene = true;
+			PhotonNetwork.SetPlayerCustomProperties(startParameters.GetLocalPlayerCustomProperties());
 			PhotonNetwork.OfflineMode = _startParameters.Type == GameStartParameters.GameStartType.LocalMultiplayer;
-
+			
 			PhotonNetwork.ConnectUsingSettings();
 		}
 
