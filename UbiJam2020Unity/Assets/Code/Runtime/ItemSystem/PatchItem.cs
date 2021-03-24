@@ -10,11 +10,12 @@ namespace Runtime.ItemSystem
 		#endregion
 
 		[PunRPC]
-		protected override void RPCActivateItem(PhotonView playerPhotonView)
+		protected override void RPCActivateItem(Photon.Realtime.Player photonPlayer)
 		{
 			if (IsMine)
 			{
-				playerPhotonView.GetComponent<Player>().GivePatch();
+				Player player = Player.GetFromPhotonPlayer(photonPlayer);
+				player.GivePatch();
 			}
 			Despawn();
 		}

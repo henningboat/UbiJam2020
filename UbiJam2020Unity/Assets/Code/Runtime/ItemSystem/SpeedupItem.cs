@@ -28,11 +28,11 @@ namespace Runtime.ItemSystem
 		#region Protected methods
 
 		[PunRPC]
-		protected override void RPCActivateItem(PhotonView playerPhotonView)
+		protected override void RPCActivateItem(Photon.Realtime.Player photonPlayer)
 		{
 			if (IsMine)
 			{
-				Player player = playerPhotonView.GetComponent<Player>();
+				Player player = 	PlayerSystem.Player.GetFromPhotonPlayer(photonPlayer);
 				player.SetSpeedMultiplier(_speedMultiplier, _duration);
 			}
 
